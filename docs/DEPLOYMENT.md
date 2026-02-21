@@ -194,9 +194,12 @@ NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
 NEXT_PUBLIC_API_URL=http://127.0.0.1:12890
 NEXT_PUBLIC_BASE_PATH=/podcasts
+SUPABASE_SERVER_URL=http://127.0.0.1:54321
 SUPABASE_SERVICE_ROLE_KEY=sb_secret_your_service_role_key
 ```
 
+说明：`NEXT_PUBLIC_SUPABASE_URL` 用于浏览器鉴权请求（可用公网地址）。
+说明：`SUPABASE_SERVER_URL` 供 Next.js 服务端调用，建议使用本机/内网地址。
 说明：`SUPABASE_SERVICE_ROLE_KEY` 供 Next.js 服务端 API 路由使用，不要加 `NEXT_PUBLIC_` 前缀。
 
 ### Podcasts API

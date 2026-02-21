@@ -93,13 +93,14 @@ async function getOrCreatePodcast(supabase: SupabaseClient, itunesId: string, ti
 }
 
 function getMissingRequiredEnvVars(): string[] {
-  const requiredVars = [
-    "NEXT_PUBLIC_SUPABASE_URL",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-    "SUPABASE_SERVICE_ROLE_KEY",
-  ] as const;
+  const requiredVars = ["NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"] as const;
+  const missingVars: string[] = requiredVars.filter((name) => !process.env[name]);
 
-  return requiredVars.filter((name) => !process.env[name]);
+  if (!process.env.SUPABASE_SERVER_URL && !process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    missingVars.push("SUPABASE_SERVER_URL|NEXT_PUBLIC_SUPABASE_URL");
+  }
+
+  return missingVars;
 }
 
 function buildMissingEnvError(missingEnvVars: string[]): TranscriptionRouteError {
@@ -118,7 +119,7 @@ function buildMissingEnvError(missingEnvVars: string[]): TranscriptionRouteError
     503,
     `Missing required environment variables: ${missingVarsText}`,
     "MISSING_TRANSCRIBE_ENV",
-    "Set the missing variables in the web runtime environment and restart the web service."
+    "Set SUPABASE_SERVER_URL (or NEXT_PUBLIC_SUPABASE_URL fallback) plus required keys in the web runtime environment, then restart the web service."
   );
 }
 
@@ -141,7 +142,7 @@ function normalizeUnknownError(error: unknown): ErrorResponseBody {
 }
 
 function getSupabaseHost(): string {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseUrl = process.env.SUPABASE_SERVER_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!supabaseUrl) return "unknown";
   try {
     return new URL(supabaseUrl).host;
@@ -167,17 +168,12 @@ function isRlsViolation(error: unknown): boolean {
   if (!supabaseError?.message) return false;
 
   const message = supabaseError.message.toLowerCase();
-  return message.includes("row-level security policy") || supabaseError.code === "42501";
-}
-
-function isAdminPermissionError(error: SupabaseLikeError): boolean {
-  const message = (error.message || "").toLowerCase();
   return (
-    error.status === 401 ||
-    error.status === 403 ||
-    message.includes("not_admin") ||
-    message.includes("insufficient permissions") ||
-    message.includes("forbidden")
+    supabaseError.code === "42501" ||
+    message.includes("row-level security policy") ||
+    message.includes("requires a valid bearer token") ||
+    message.includes("invalid jwt") ||
+    message.includes("permission denied")
   );
 }
 
@@ -187,28 +183,8 @@ function buildInvalidServiceRoleError(details?: string): TranscriptionRouteError
     "Web service key is invalid for privileged Supabase writes.",
     "INVALID_SERVICE_ROLE_KEY",
     details
-      ? `Ensure SUPABASE_SERVICE_ROLE_KEY is a service-role key for the same Supabase project. Details: ${details}`
-      : "Ensure SUPABASE_SERVICE_ROLE_KEY is a service-role key for the same Supabase project and restart the web service."
-  );
-}
-
-async function assertServiceRolePermissions(serviceSupabase: SupabaseClient): Promise<void> {
-  const { error } = await serviceSupabase.auth.admin.listUsers({
-    page: 1,
-    perPage: 1,
-  });
-
-  if (!error) return;
-
-  if (isAdminPermissionError(error)) {
-    throw buildInvalidServiceRoleError(error.message);
-  }
-
-  throw new TranscriptionRouteError(
-    502,
-    `Failed to verify Supabase admin privileges: ${error.message}`,
-    "SUPABASE_ADMIN_CHECK_FAILED",
-    "Check SUPABASE URL/key connectivity and try again."
+      ? `Ensure SUPABASE_SERVICE_ROLE_KEY matches SUPABASE_SERVER_URL (or NEXT_PUBLIC_SUPABASE_URL fallback) for the same project. Details: ${details}`
+      : "Ensure SUPABASE_SERVICE_ROLE_KEY matches SUPABASE_SERVER_URL (or NEXT_PUBLIC_SUPABASE_URL fallback) for the same project, then restart the web service."
   );
 }
 
@@ -228,7 +204,6 @@ export async function POST(request: Request) {
     const supabase = await createClient();
     // Use service client for write operations to bypass RLS
     const serviceSupabase = createServiceClient();
-    await assertServiceRolePermissions(serviceSupabase);
 
     const { episodeId, audioUrl, podcastId, episodeTitle } = await request.json();
 
@@ -255,7 +230,11 @@ export async function POST(request: Request) {
       .from("pc_episodes")
       .select("id")
       .eq("audio_url", audioUrl)
-      .single();
+      .maybeSingle();
+
+    if (episodeError) {
+      throw episodeError;
+    }
 
     let episodeDbId = episode?.id;
 
