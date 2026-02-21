@@ -3,6 +3,26 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { getAuthUser } from "@/lib/auth";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+type ErrorResponseBody = {
+  error: string;
+  code?: string;
+  hint?: string;
+};
+
+class TranscriptionRouteError extends Error {
+  status: number;
+  code?: string;
+  hint?: string;
+
+  constructor(status: number, message: string, code?: string, hint?: string) {
+    super(message);
+    this.status = status;
+    this.code = code;
+    this.hint = hint;
+    this.name = "TranscriptionRouteError";
+  }
+}
+
 // Check if a string is a valid UUID
 function isUUID(str: string): boolean {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -66,8 +86,61 @@ async function getOrCreatePodcast(supabase: SupabaseClient, itunesId: string, ti
   return newPodcast.id;
 }
 
+function getMissingRequiredEnvVars(): string[] {
+  const requiredVars = [
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+  ] as const;
+
+  return requiredVars.filter((name) => !process.env[name]);
+}
+
+function buildMissingEnvError(missingEnvVars: string[]): TranscriptionRouteError {
+  const missingVarsText = missingEnvVars.join(", ");
+
+  if (missingEnvVars.includes("SUPABASE_SERVICE_ROLE_KEY")) {
+    return new TranscriptionRouteError(
+      503,
+      "Transcription service is not configured on the web server.",
+      "MISSING_SUPABASE_SERVICE_ROLE_KEY",
+      "Set SUPABASE_SERVICE_ROLE_KEY in the web runtime environment (server-only, no NEXT_PUBLIC_ prefix) and restart the web service."
+    );
+  }
+
+  return new TranscriptionRouteError(
+    503,
+    `Missing required environment variables: ${missingVarsText}`,
+    "MISSING_TRANSCRIBE_ENV",
+    "Set the missing variables in the web runtime environment and restart the web service."
+  );
+}
+
+function normalizeUnknownError(error: unknown): ErrorResponseBody {
+  if (
+    error &&
+    typeof error === "object" &&
+    "message" in error &&
+    typeof error.message === "string"
+  ) {
+    const maybeError = error as { message: string; code?: string; hint?: string };
+    return {
+      error: maybeError.message,
+      code: maybeError.code,
+      hint: maybeError.hint,
+    };
+  }
+
+  return { error: "Failed to start transcription" };
+}
+
 export async function POST(request: Request) {
   try {
+    const missingEnvVars = getMissingRequiredEnvVars();
+    if (missingEnvVars.length > 0) {
+      throw buildMissingEnvError(missingEnvVars);
+    }
+
     const { user, error: authError } = await getAuthUser();
     if (authError) return authError;
     if (!user) {
@@ -182,7 +255,12 @@ export async function POST(request: Request) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Transcription service error:", response.status, errorText);
-      throw new Error(`Transcription service error: ${response.status} - ${errorText}`);
+      throw new TranscriptionRouteError(
+        502,
+        `Transcription service error: ${response.status} - ${errorText}`,
+        "TRANSCRIPTION_SERVICE_ERROR",
+        "Check NEXT_PUBLIC_API_URL and ensure the Python transcription API is reachable."
+      );
     }
 
     const data = await response.json();
@@ -195,9 +273,20 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Transcription error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to start transcription";
+    if (error instanceof TranscriptionRouteError) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          code: error.code,
+          hint: error.hint,
+        },
+        { status: error.status }
+      );
+    }
+
+    const normalizedError = normalizeUnknownError(error);
     return NextResponse.json(
-      { error: errorMessage },
+      normalizedError,
       { status: 500 }
     );
   }

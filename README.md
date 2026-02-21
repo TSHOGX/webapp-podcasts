@@ -71,7 +71,11 @@ Create `.env.local` in `apps/web/`:
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
 NEXT_PUBLIC_API_URL=http://127.0.0.1:12890
+SUPABASE_SERVICE_ROLE_KEY=sb_secret_your_service_role_key
 ```
+
+`SUPABASE_SERVICE_ROLE_KEY` is server-only and is used by Next.js API routes.
+Do not prefix it with `NEXT_PUBLIC_`.
 
 Create `.env` in `apps/api/`:
 

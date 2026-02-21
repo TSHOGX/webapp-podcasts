@@ -110,10 +110,12 @@ export default function EpisodeDetailPage() {
         }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to start transcription");
+        const errorMessage = typeof data.error === "string" ? data.error : "Failed to start transcription";
+        const hintMessage = typeof data.hint === "string" ? data.hint : "";
+        throw new Error(hintMessage ? `${errorMessage} ${hintMessage}` : errorMessage);
       }
 
       setTranscriptionStatus(data.status);
