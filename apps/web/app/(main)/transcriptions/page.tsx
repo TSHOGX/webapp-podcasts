@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, FileText, Search, Download, Trash2 } from "lucide-react";
+import { Loader2, FileText, Search, Download, Trash2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -102,6 +102,23 @@ function TranscriptionsContent() {
     URL.revokeObjectURL(url);
   };
 
+  const handleCopy = async (transcription: Transcription) => {
+    const text = transcription.text || "";
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "已复制",
+        description: "转录内容已复制到剪贴板",
+      });
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to copy to clipboard",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
@@ -171,6 +188,14 @@ function TranscriptionsContent() {
                       {transcription.text}
                     </p>
                     <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCopy(transcription)}
+                      >
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"

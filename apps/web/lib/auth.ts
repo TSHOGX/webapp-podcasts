@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createClientWithUrl } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import { isTestMode, getTestUser, logTestMode } from "./test-mode";
 
@@ -22,7 +22,9 @@ export async function getAuthUser(): Promise<AuthResult> {
     };
   }
 
-  const supabase = await createClient();
+  // Use public URL for authentication to match the URL used during login
+  // This is needed when the server URL differs from the public URL (e.g., local dev with cpolar tunnel)
+  const supabase = await createClientWithUrl(process.env.NEXT_PUBLIC_SUPABASE_URL!);
 
   const {
     data: { user },

@@ -26,7 +26,7 @@ export async function POST(request: Request) {
       .from("pc_episodes")
       .select("id")
       .eq("audio_url", audioUrl)
-      .single();
+      .maybeSingle();
 
     if (episodeError || !episode) {
       // Episode doesn't exist yet, so no transcription exists
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
       .select("*")
       .eq("user_id", user.id)
       .eq("episode_id", episode.id)
-      .single();
+      .maybeSingle();
 
     if (transcriptionError || !transcription) {
       // No transcription exists

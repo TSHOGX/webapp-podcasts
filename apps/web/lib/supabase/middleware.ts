@@ -9,7 +9,8 @@ const protectedRoutes = ["/favorites", "/transcriptions"];
 
 // Test mode check
 const isTestMode = process.env.NEXT_PUBLIC_TEST_MODE === "true";
-const supabaseServerUrl = process.env.SUPABASE_SERVER_URL || process.env.NEXT_PUBLIC_SUPABASE_URL!;
+// Use public URL for session validation (needed when local server differs from public URL)
+const supabasePublicUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
 export async function updateSession(request: NextRequest) {
   // Test mode: skip all auth checks
@@ -23,7 +24,7 @@ export async function updateSession(request: NextRequest) {
   });
 
   const supabase = createServerClient(
-    supabaseServerUrl,
+    supabasePublicUrl,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {

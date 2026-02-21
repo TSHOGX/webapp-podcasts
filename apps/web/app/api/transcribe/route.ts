@@ -262,7 +262,7 @@ export async function POST(request: Request) {
       .select("id, status, text")
       .eq("user_id", user.id)
       .eq("episode_id", episodeDbId)
-      .single();
+      .maybeSingle();
 
     if (existingTranscription && existingTranscription.status === "completed") {
       return NextResponse.json({
