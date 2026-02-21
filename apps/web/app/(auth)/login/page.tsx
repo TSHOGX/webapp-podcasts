@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getApiUrl } from "@/lib/utils";
 
 function LoginForm() {
   const [email, setEmail] = useState("");
@@ -57,14 +58,41 @@ function LoginForm() {
         router.refresh();
       }
     } catch (err) {
-      console.error("Login error:", err);
-      toast({
-        title: "Error",
-        description: err instanceof Error
-          ? `Network error: ${err.message}. Please check your connection or Supabase configuration.`
-          : "Failed to connect to authentication service. Please try again later.",
-        variant: "destructive",
-      });
+      // Fallback to server-side login when browser-to-Supabase requests fail.
+      try {
+        const response = await fetch(getApiUrl("api/auth/login"), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: normalizedEmail,
+            password,
+          }),
+        });
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to login");
+        }
+
+        toast({
+          title: "Success",
+          description: "Logged in successfully!",
+        });
+        router.push(returnUrl);
+        router.refresh();
+      } catch (fallbackError) {
+        console.error("Login error:", err);
+        console.error("Login fallback error:", fallbackError);
+        toast({
+          title: "Error",
+          description: fallbackError instanceof Error
+            ? fallbackError.message
+            : "Failed to connect to authentication service. Please try again later.",
+          variant: "destructive",
+        });
+      }
     }
 
     setLoading(false);
