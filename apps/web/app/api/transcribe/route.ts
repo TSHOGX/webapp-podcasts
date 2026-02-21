@@ -23,6 +23,12 @@ class TranscriptionRouteError extends Error {
   }
 }
 
+type SupabaseLikeError = {
+  message?: string;
+  code?: string;
+  status?: number;
+};
+
 // Check if a string is a valid UUID
 function isUUID(str: string): boolean {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -134,6 +140,78 @@ function normalizeUnknownError(error: unknown): ErrorResponseBody {
   return { error: "Failed to start transcription" };
 }
 
+function getSupabaseHost(): string {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) return "unknown";
+  try {
+    return new URL(supabaseUrl).host;
+  } catch {
+    return "invalid-url";
+  }
+}
+
+function getKeyPrefix(key: string | undefined): string {
+  if (!key) return "unset";
+  return `${key.slice(0, 12)}...`;
+}
+
+function asSupabaseLikeError(error: unknown): SupabaseLikeError | null {
+  if (!error || typeof error !== "object") return null;
+  const maybeError = error as SupabaseLikeError;
+  if (!maybeError.message) return null;
+  return maybeError;
+}
+
+function isRlsViolation(error: unknown): boolean {
+  const supabaseError = asSupabaseLikeError(error);
+  if (!supabaseError?.message) return false;
+
+  const message = supabaseError.message.toLowerCase();
+  return message.includes("row-level security policy") || supabaseError.code === "42501";
+}
+
+function isAdminPermissionError(error: SupabaseLikeError): boolean {
+  const message = (error.message || "").toLowerCase();
+  return (
+    error.status === 401 ||
+    error.status === 403 ||
+    message.includes("not_admin") ||
+    message.includes("insufficient permissions") ||
+    message.includes("forbidden")
+  );
+}
+
+function buildInvalidServiceRoleError(details?: string): TranscriptionRouteError {
+  return new TranscriptionRouteError(
+    503,
+    "Web service key is invalid for privileged Supabase writes.",
+    "INVALID_SERVICE_ROLE_KEY",
+    details
+      ? `Ensure SUPABASE_SERVICE_ROLE_KEY is a service-role key for the same Supabase project. Details: ${details}`
+      : "Ensure SUPABASE_SERVICE_ROLE_KEY is a service-role key for the same Supabase project and restart the web service."
+  );
+}
+
+async function assertServiceRolePermissions(serviceSupabase: SupabaseClient): Promise<void> {
+  const { error } = await serviceSupabase.auth.admin.listUsers({
+    page: 1,
+    perPage: 1,
+  });
+
+  if (!error) return;
+
+  if (isAdminPermissionError(error)) {
+    throw buildInvalidServiceRoleError(error.message);
+  }
+
+  throw new TranscriptionRouteError(
+    502,
+    `Failed to verify Supabase admin privileges: ${error.message}`,
+    "SUPABASE_ADMIN_CHECK_FAILED",
+    "Check SUPABASE URL/key connectivity and try again."
+  );
+}
+
 export async function POST(request: Request) {
   try {
     const missingEnvVars = getMissingRequiredEnvVars();
@@ -150,6 +228,7 @@ export async function POST(request: Request) {
     const supabase = await createClient();
     // Use service client for write operations to bypass RLS
     const serviceSupabase = createServiceClient();
+    await assertServiceRolePermissions(serviceSupabase);
 
     const { episodeId, audioUrl, podcastId, episodeTitle } = await request.json();
 
@@ -272,7 +351,28 @@ export async function POST(request: Request) {
       message: "Transcription started",
     });
   } catch (error) {
-    console.error("Transcription error:", error);
+    const errorInfo = asSupabaseLikeError(error);
+    console.error("Transcription error context:", {
+      supabaseHost: getSupabaseHost(),
+      serviceRoleKeyPrefix: getKeyPrefix(process.env.SUPABASE_SERVICE_ROLE_KEY),
+      errorCode: errorInfo?.code,
+      errorStatus: errorInfo?.status,
+      errorMessage: errorInfo?.message || (error instanceof Error ? error.message : "unknown"),
+    });
+
+    if (isRlsViolation(error)) {
+      const invalidKeyError = buildInvalidServiceRoleError(errorInfo?.message);
+      return NextResponse.json(
+        {
+          error: invalidKeyError.message,
+          code: invalidKeyError.code,
+          hint: invalidKeyError.hint,
+        },
+        { status: invalidKeyError.status }
+      );
+    }
+
+    console.error("Transcription error raw:", error);
     if (error instanceof TranscriptionRouteError) {
       return NextResponse.json(
         {
