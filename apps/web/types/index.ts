@@ -26,12 +26,28 @@ export interface EpisodeWithPodcast extends Episode {
   podcast?: Podcast;
 }
 
+export interface WordTimestamp {
+  word: string;
+  start: number;
+  end: number;
+}
+
+export interface TranscriptionSegment {
+  id: number;
+  start: number;
+  end: number;
+  text: string;
+  words?: WordTimestamp[];
+}
+
 export interface Transcription {
   id: string;
   userId?: string;
   episodeId?: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   text?: string;
+  segments?: TranscriptionSegment[];
+  language?: string;
   errorMessage?: string;
   createdAt?: string;
   completedAt?: string;

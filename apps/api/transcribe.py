@@ -61,8 +61,10 @@ async def download_audio(audio_url: str, temp_dir: str) -> Tuple[Optional[str], 
         return None, error_msg
 
 
-async def transcribe_audio(audio_path: str, task: Dict[str, Any]) -> Optional[str]:
-    """Transcribe audio file using mlx-whisper"""
+async def transcribe_audio(audio_path: str, task: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Transcribe audio file using mlx-whisper
+    Returns: Dictionary with text, segments, and language
+    """
     try:
         # Update progress
         task["progress"] = 0.4
@@ -75,19 +77,29 @@ async def transcribe_audio(audio_path: str, task: Dict[str, Any]) -> Optional[st
         # Run mlx-whisper transcription in a thread pool to avoid blocking
         def transcribe():
             # Use mlx_whisper directly
-            result = mlx_whisper.transcribe(audio_path, path_or_hf_repo=model)
-            return result["text"]
+            # word_timestamps=True enables word-level timestamps if supported by the model
+            result = mlx_whisper.transcribe(
+                audio_path,
+                path_or_hf_repo=model,
+                word_timestamps=True
+            )
+            return result
 
         # Run the transcription in a thread pool
         loop = asyncio.get_event_loop()
-        text = await loop.run_in_executor(None, transcribe)
+        result = await loop.run_in_executor(None, transcribe)
 
         task["progress"] = 0.9
 
-        if text:
-            return text.strip()
+        if result and result.get("text"):
+            # Return full result with segments
+            return {
+                "text": result["text"].strip(),
+                "segments": result.get("segments", []),
+                "language": result.get("language", "en")
+            }
         else:
-            print("Transcription returned empty text")
+            print("Transcription returned empty result")
             return None
 
     except asyncio.TimeoutError:
@@ -98,8 +110,10 @@ async def transcribe_audio(audio_path: str, task: Dict[str, Any]) -> Optional[st
         return None
 
 
-async def transcribe_with_progress(audio_path: str, task: Dict[str, Any]) -> Optional[str]:
-    """Transcribe with progress updates"""
+async def transcribe_with_progress(audio_path: str, task: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Transcribe with progress updates
+    Returns: Dictionary with text, segments, and language
+    """
     # This is a more advanced version that could stream progress
     # For now, just call the basic transcribe function
     return await transcribe_audio(audio_path, task)

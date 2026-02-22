@@ -46,6 +46,26 @@ export function GlobalPlayer() {
     }
   }, [volume]);
 
+  // Listen for custom seek events from transcription viewer
+  useEffect(() => {
+    const handleCustomSeek = (event: CustomEvent<{ time: number }>) => {
+      const newTime = event.detail.time;
+      if (audioRef.current) {
+        audioRef.current.currentTime = newTime;
+        setCurrentTime(newTime);
+        // Also start playing if not already playing
+        if (!isPlaying) {
+          setIsPlaying(true);
+        }
+      }
+    };
+
+    window.addEventListener("podcast:seek", handleCustomSeek as EventListener);
+    return () => {
+      window.removeEventListener("podcast:seek", handleCustomSeek as EventListener);
+    };
+  }, [isPlaying, setCurrentTime, setIsPlaying]);
+
   useEffect(() => {
     if (currentEpisode?.audioUrl && audioRef.current) {
       audioRef.current.src = currentEpisode.audioUrl;

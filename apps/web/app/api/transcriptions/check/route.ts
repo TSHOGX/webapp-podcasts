@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     // Check if transcription exists for this episode
     const { data: transcription, error: transcriptionError } = await supabase
       .from("pc_transcriptions")
-      .select("*")
+      .select("*, segments, language")
       .eq("user_id", user.id)
       .eq("episode_id", episode.id)
       .maybeSingle();

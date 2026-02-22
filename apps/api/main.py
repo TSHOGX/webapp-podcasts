@@ -74,6 +74,8 @@ class TranscriptionStatus(BaseModel):
     status: str
     progress: float
     text: Optional[str] = None
+    segments: Optional[list] = None
+    language: Optional[str] = None
     error: Optional[str] = None
 
 
@@ -169,6 +171,8 @@ async def get_transcription_status(task_id: str):
         status=task["status"],
         progress=task["progress"],
         text=task.get("text"),
+        segments=task.get("segments"),
+        language=task.get("language"),
         error=task.get("error")
     )
 
@@ -191,6 +195,8 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str):
                 "status": task.get("status"),
                 "progress": task.get("progress", 0),
                 "text": task.get("text"),
+                "segments": task.get("segments"),
+                "language": task.get("language"),
                 "error": task.get("error")
             })
 
@@ -204,7 +210,14 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str):
         print(f"WebSocket disconnected for task {task_id}")
 
 
-async def update_transcription_in_db(episode_id: str, status: str, text: str | None = None, error: str | None = None):
+async def update_transcription_in_db(
+    episode_id: str,
+    status: str,
+    text: str | None = None,
+    segments: list | None = None,
+    language: str | None = None,
+    error: str | None = None
+):
     """Update transcription status in Supabase database"""
     try:
         supabase = get_supabase()
@@ -232,6 +245,12 @@ async def update_transcription_in_db(episode_id: str, status: str, text: str | N
 
         if text is not None:
             update_data["text"] = text
+
+        if segments is not None:
+            update_data["segments"] = segments
+
+        if language is not None:
+            update_data["language"] = language
 
         if error is not None:
             update_data["error_message"] = error
@@ -342,13 +361,21 @@ async def process_transcription(task_id: str, audio_url: str):
         result = await transcribe_audio(temp_file, task)
 
         if result:
-            task["text"] = result
+            task["text"] = result["text"]
+            task["segments"] = result.get("segments", [])
+            task["language"] = result.get("language", "en")
             task["status"] = "completed"
             task["progress"] = 1.0
 
             # Update database
             if episode_id:
-                await update_transcription_in_db(episode_id, "completed", text=result)
+                await update_transcription_in_db(
+                    episode_id,
+                    "completed",
+                    text=result["text"],
+                    segments=result.get("segments", []),
+                    language=result.get("language", "en")
+                )
         else:
             raise Exception("Transcription failed")
 

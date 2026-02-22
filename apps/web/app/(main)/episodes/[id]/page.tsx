@@ -9,9 +9,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePlayerStore } from "@/store/player-store";
 import { useToast } from "@/hooks/use-toast";
-import { Episode } from "@/types";
+import { Episode, TranscriptionSegment } from "@/types";
 import { getApiUrl } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import {
+  TranscriptionViewer,
+  formatAsSRT,
+  formatAsVTT,
+  formatAsMarkdown,
+} from "@/components/transcription/transcription-viewer";
 
 interface EpisodeDetail extends Episode {
   podcastTitle: string;
@@ -26,6 +32,8 @@ export default function EpisodeDetailPage() {
   const [transcribing, setTranscribing] = useState(false);
   const [transcriptionStatus, setTranscriptionStatus] = useState<string | null>(null);
   const [transcriptionText, setTranscriptionText] = useState<string | null>(null);
+  const [transcriptionSegments, setTranscriptionSegments] = useState<TranscriptionSegment[] | null>(null);
+  const [transcriptionLanguage, setTranscriptionLanguage] = useState<string | null>(null);
   const [showTranscription, setShowTranscription] = useState(false);
   const [copied, setCopied] = useState(false);
   const searchParams = useSearchParams();
@@ -33,6 +41,7 @@ export default function EpisodeDetailPage() {
   const id = params.id as string;
   const podcastId = searchParams.get("podcastId");
   const setCurrentEpisode = usePlayerStore((state) => state.setCurrentEpisode);
+  const currentTime = usePlayerStore((state) => state.currentTime);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -79,6 +88,8 @@ export default function EpisodeDetailPage() {
         if (data.transcription) {
           setTranscriptionStatus(data.transcription.status);
           setTranscriptionText(data.transcription.text);
+          setTranscriptionSegments(data.transcription.segments || null);
+          setTranscriptionLanguage(data.transcription.language || null);
         }
       }
     } catch {
@@ -93,6 +104,14 @@ export default function EpisodeDetailPage() {
         podcastTitle: episode.podcastTitle,
         podcastImage: episode.podcastImage,
       });
+    }
+  };
+
+  const handleSeek = (time: number) => {
+    // The player store handles seeking through the audio element
+    // We need to dispatch a custom event that the player can listen to
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('podcast:seek', { detail: { time } }));
     }
   };
 
@@ -115,21 +134,69 @@ export default function EpisodeDetailPage() {
     }
   };
 
-  const handleExport = (format: "txt" | "md") => {
-    if (!transcriptionText || !episode) return;
+  const handleExport = (format: "txt" | "md" | "srt" | "vtt" | "json") => {
+    if (!episode) return;
 
     let content = "";
-    if (format === "md") {
-      content = `# ${episode.title}\n\n${transcriptionText}`;
-    } else {
-      content = `${episode.title}\n\n${transcriptionText}`;
+    let mimeType = "text/plain";
+    let fileExtension = format;
+
+    switch (format) {
+      case "srt":
+        if (!transcriptionSegments) {
+          toast({
+            title: "Error",
+            description: "No timestamp data available for SRT export",
+            variant: "destructive",
+          });
+          return;
+        }
+        content = formatAsSRT(transcriptionSegments);
+        mimeType = "application/x-subrip";
+        break;
+      case "vtt":
+        if (!transcriptionSegments) {
+          toast({
+            title: "Error",
+            description: "No timestamp data available for VTT export",
+            variant: "destructive",
+          });
+          return;
+        }
+        content = formatAsVTT(transcriptionSegments);
+        mimeType = "text/vtt";
+        break;
+      case "json":
+        content = JSON.stringify(
+          {
+            title: episode.title,
+            text: transcriptionText,
+            segments: transcriptionSegments,
+            language: transcriptionLanguage,
+          },
+          null,
+          2
+        );
+        mimeType = "application/json";
+        break;
+      case "md":
+        if (transcriptionSegments) {
+          content = formatAsMarkdown(transcriptionSegments, episode.title);
+        } else {
+          content = `# ${episode.title}\n\n${transcriptionText || ""}`;
+        }
+        break;
+      case "txt":
+      default:
+        content = `${episode.title}\n\n${transcriptionText || ""}`;
+        break;
     }
 
-    const blob = new Blob([content], { type: "text/plain" });
+    const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${episode.title}.${format}`;
+    a.download = `${episode.title}.${fileExtension}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -176,6 +243,8 @@ export default function EpisodeDetailPage() {
       // If transcription already exists and is completed, show the text
       if (data.status === "completed" && data.transcription?.text) {
         setTranscriptionText(data.transcription.text);
+        setTranscriptionSegments(data.transcription.segments || null);
+        setTranscriptionLanguage(data.transcription.language || null);
         toast({
           title: "Transcription exists",
           description: "This episode has already been transcribed.",
@@ -314,6 +383,7 @@ export default function EpisodeDetailPage() {
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {getWordCount(transcriptionText).toLocaleString()} words ·
                       {getReadingTime(getWordCount(transcriptionText))} min read
+                      {currentTime > 0 && ` · ${Math.floor(currentTime / 60)}:${(Math.floor(currentTime) % 60).toString().padStart(2, '0')}`}
                     </p>
                   </div>
                 </div>
@@ -334,11 +404,22 @@ export default function EpisodeDetailPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleExport("md")}
+                    onClick={() => handleExport("txt")}
                     className="rounded-full"
                   >
                     <Download className="h-4 w-4 mr-2" />
-                    Download
+                    TXT
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleExport("srt")}
+                    disabled={!transcriptionSegments}
+                    title={transcriptionSegments ? "Export as SRT subtitles" : "No timestamp data available"}
+                    className="rounded-full"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    SRT
                   </Button>
                   <Button
                     variant="ghost"
@@ -352,13 +433,21 @@ export default function EpisodeDetailPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
-                <div className="prose max-w-none">
-                  <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground">
-                    {transcriptionText}
-                  </p>
+              {transcriptionSegments ? (
+                <TranscriptionViewer
+                  segments={transcriptionSegments}
+                  currentTime={currentTime}
+                  onSeek={handleSeek}
+                />
+              ) : (
+                <div className="max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+                  <div className="prose max-w-none">
+                    <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground">
+                      {transcriptionText}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>

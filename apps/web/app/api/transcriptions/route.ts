@@ -14,6 +14,8 @@ export async function GET() {
         id,
         status,
         text,
+        segments,
+        language,
         error_message,
         created_at,
         completed_at,
