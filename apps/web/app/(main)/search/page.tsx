@@ -1,14 +1,16 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { PodcastCard } from "@/components/podcast/podcast-card";
+import { SearchHero } from "@/components/podcast/search-hero";
 import { Podcast } from "@/types";
 import { getApiUrl } from "@/lib/utils";
 
 function SearchResults() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const query = searchParams.get("q");
   const [podcasts, setPodcasts] = useState<Podcast[]>([]);
   const [loading, setLoading] = useState(false);
@@ -42,10 +44,19 @@ function SearchResults() {
     fetchPodcasts();
   }, [query]);
 
+  const handleSearch = (searchQuery: string) => {
+    router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+  };
+
   if (!query) {
     return (
-      <div className="text-center text-muted-foreground py-20">
-        Enter a search term to find podcasts
+      <div className="py-12">
+        <SearchHero
+          defaultQuery=""
+          onSearch={handleSearch}
+          title="Discover Podcasts"
+          description="Search millions of podcasts, transcribe episodes, and build your personal library."
+        />
       </div>
     );
   }

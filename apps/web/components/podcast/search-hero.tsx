@@ -6,14 +6,30 @@ import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export function SearchHero() {
-  const [query, setQuery] = useState("");
+interface SearchHeroProps {
+  defaultQuery?: string;
+  onSearch?: (query: string) => void;
+  title?: string;
+  description?: string;
+}
+
+export function SearchHero({
+  defaultQuery = "",
+  onSearch,
+  title = "Discover Podcasts",
+  description = "Search millions of podcasts, transcribe episodes, and build your personal library.",
+}: SearchHeroProps) {
+  const [query, setQuery] = useState(defaultQuery);
   const router = useRouter();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim()) {
-      router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+      if (onSearch) {
+        onSearch(query.trim());
+      } else {
+        router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+      }
     }
   };
 
@@ -21,10 +37,10 @@ export function SearchHero() {
     <div className="text-center space-y-8">
       <div className="space-y-4">
         <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
-          Discover Podcasts
+          {title}
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Search millions of podcasts, transcribe episodes, and build your personal library.
+          {description}
         </p>
       </div>
 
