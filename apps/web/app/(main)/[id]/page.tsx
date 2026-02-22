@@ -64,7 +64,7 @@ export default function PodcastDetailPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -78,11 +78,11 @@ export default function PodcastDetailPage() {
   }
 
   return (
-    <div className="space-y-6 md:space-y-8">
+    <div className="space-y-8 md:space-y-10">
       {/* Podcast Header - Responsive: vertical on mobile, horizontal on desktop */}
-      <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+      <div className="flex flex-col md:flex-row gap-6 md:gap-8">
         {/* Podcast Image - Smaller on mobile */}
-        <div className="w-32 h-32 md:w-48 md:h-48 shrink-0 mx-auto md:mx-0 relative bg-muted rounded-lg overflow-hidden">
+        <div className="w-40 h-40 md:w-48 md:h-48 shrink-0 mx-auto md:mx-0 relative bg-muted rounded-3xl overflow-hidden shadow-soft">
           {podcast.artworkUrl ? (
             <Image
               src={podcast.artworkUrl}
@@ -98,14 +98,14 @@ export default function PodcastDetailPage() {
         </div>
 
         {/* Podcast Info */}
-        <div className="flex-1 space-y-3 md:space-y-4 text-center md:text-left">
+        <div className="flex-1 space-y-4 md:space-y-5 text-center md:text-left">
           <div>
-            <h1 className="text-xl md:text-3xl font-bold mb-1 md:mb-2">{podcast.title}</h1>
+            <h1 className="font-display text-2xl md:text-4xl font-bold mb-2 leading-tight">{podcast.title}</h1>
             <p className="text-base md:text-lg text-muted-foreground">{podcast.author}</p>
           </div>
 
           {podcast.genre && (
-            <span className="inline-block bg-muted px-3 py-1 rounded-full text-sm">
+            <span className="inline-flex items-center text-xs font-medium bg-accent/60 text-accent-foreground px-3 py-1.5 rounded-full">
               {podcast.genre}
             </span>
           )}
@@ -113,7 +113,7 @@ export default function PodcastDetailPage() {
           {podcast.description && (
             <div className="max-w-2xl max-h-[200px] overflow-y-auto">
               <div
-                className="text-sm md:text-base text-muted-foreground prose prose-sm max-w-none"
+                className="text-sm md:text-base text-muted-foreground prose prose-sm max-w-none leading-relaxed"
                 dangerouslySetInnerHTML={{ __html: podcast.description }}
               />
             </div>
@@ -137,8 +137,8 @@ export default function PodcastDetailPage() {
       </div>
 
       {/* Episodes Section */}
-      <div>
-        <h2 className="text-lg md:text-2xl font-bold mb-3 md:mb-4">Episodes ({episodes.length})</h2>
+      <div className="space-y-6">
+        <h2 className="font-display text-xl md:text-2xl font-bold">Episodes ({episodes.length})</h2>
         <EpisodeList
           episodes={episodes}
           onPlay={handlePlay}

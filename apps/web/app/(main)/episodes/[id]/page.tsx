@@ -147,7 +147,7 @@ export default function EpisodeDetailPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -169,10 +169,10 @@ export default function EpisodeDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Episode Header */}
-      <div className="flex gap-6">
-        <div className="w-32 h-32 shrink-0 relative bg-muted rounded-lg overflow-hidden">
+      <div className="flex flex-col sm:flex-row gap-6">
+        <div className="w-32 h-32 sm:w-40 sm:h-40 shrink-0 relative bg-muted rounded-3xl overflow-hidden shadow-soft">
           {episode.podcastImage ? (
             <Image
               src={episode.podcastImage}
@@ -187,25 +187,25 @@ export default function EpisodeDetailPage() {
           )}
         </div>
 
-        <div className="flex-1 space-y-4">
+        <div className="flex-1 space-y-5">
           <div>
-            <h1 className="text-2xl font-bold mb-2">{episode.title}</h1>
-            <p className="text-muted-foreground">{episode.podcastTitle}</p>
+            <h1 className="font-display text-2xl md:text-3xl font-bold mb-2 leading-tight">{episode.title}</h1>
+            <p className="text-muted-foreground text-base">{episode.podcastTitle}</p>
           </div>
 
-          <div className="flex gap-2">
-            <Button onClick={handlePlay}>
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={handlePlay} className="rounded-full h-12 px-6">
               <Play className="h-4 w-4 mr-2" />
               Play Episode
             </Button>
 
             {transcriptionStatus === "completed" ? (
-              <Button variant="outline" disabled>
+              <Button variant="outline" disabled className="rounded-full h-12 px-6">
                 <FileText className="h-4 w-4 mr-2" />
                 Transcribed
               </Button>
             ) : transcriptionStatus === "processing" ? (
-              <Button variant="outline" disabled>
+              <Button variant="outline" disabled className="rounded-full h-12 px-6">
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Transcribing...
               </Button>
@@ -214,6 +214,7 @@ export default function EpisodeDetailPage() {
                 variant="outline"
                 onClick={handleTranscribe}
                 disabled={transcribing}
+                className="rounded-full h-12 px-6"
               >
                 {transcribing ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -229,13 +230,13 @@ export default function EpisodeDetailPage() {
 
       {/* Transcription Result */}
       {transcriptionStatus === "completed" && transcriptionText && (
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader>
-            <CardTitle>Transcription</CardTitle>
+            <CardTitle className="font-display text-xl">Transcription</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="prose max-w-none">
-              <p className="whitespace-pre-wrap">{transcriptionText}</p>
+              <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground">{transcriptionText}</p>
             </div>
           </CardContent>
         </Card>
@@ -243,13 +244,13 @@ export default function EpisodeDetailPage() {
 
       {/* Episode Description */}
       {episode.description && (
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader>
-            <CardTitle>Description</CardTitle>
+            <CardTitle className="font-display text-xl">Description</CardTitle>
           </CardHeader>
           <CardContent>
             <div
-              className="prose max-w-none text-muted-foreground"
+              className="prose max-w-none text-muted-foreground leading-relaxed"
               dangerouslySetInnerHTML={{ __html: episode.description }}
             />
           </CardContent>

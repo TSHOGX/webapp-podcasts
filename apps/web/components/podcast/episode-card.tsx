@@ -53,11 +53,11 @@ export function EpisodeCard({ episode, variant = "vertical" }: EpisodeCardProps)
 
   if (variant === "horizontal") {
     return (
-      <Link href={podcastLink}>
-        <Card className="overflow-hidden hover:shadow-md transition-shadow">
-          <CardContent className="p-3">
-            <div className="flex gap-3">
-              <div className="w-16 h-16 flex-shrink-0 relative bg-muted rounded overflow-hidden">
+      <Link href={podcastLink} className="group block">
+        <Card className="overflow-hidden hover:shadow-soft-lg transition-shadow duration-300">
+          <CardContent className="p-5">
+            <div className="flex gap-5">
+              <div className="w-[72px] h-[72px] flex-shrink-0 relative bg-muted rounded-2xl overflow-hidden">
                 {episode.podcast.artworkUrl ? (
                   <Image
                     src={episode.podcast.artworkUrl}
@@ -71,14 +71,14 @@ export function EpisodeCard({ episode, variant = "vertical" }: EpisodeCardProps)
                   </div>
                 )}
               </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-sm line-clamp-2 mb-1">
+              <div className="flex-1 min-w-0 py-1">
+                <h4 className="font-medium text-sm line-clamp-2 mb-2 group-hover:text-primary transition-colors">
                   {episode.title}
                 </h4>
                 <p className="text-xs text-muted-foreground line-clamp-1">
                   {episode.podcast.title}
                 </p>
-                <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                   <span>{formatRelativeTime(episode.publishedAt)}</span>
                   {episode.duration ? (
                     <>
@@ -99,30 +99,32 @@ export function EpisodeCard({ episode, variant = "vertical" }: EpisodeCardProps)
   }
 
   return (
-    <Link href={podcastLink}>
-      <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full group">
-        <div className="aspect-square relative bg-muted">
+    <Link href={podcastLink} className="group block">
+      <Card className="overflow-hidden h-full group/card">
+        <div className="aspect-square relative bg-muted overflow-hidden rounded-2xl">
           {episode.podcast.artworkUrl ? (
             <Image
               src={episode.podcast.artworkUrl}
               alt={episode.podcast.title}
               fill
-              className="object-cover"
+              className="object-cover transition-transform duration-500 group-hover/card:scale-105"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-muted-foreground">
               No Image
             </div>
           )}
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <Play className="h-12 w-12 text-white fill-white" />
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-white/25 backdrop-blur-sm flex items-center justify-center">
+              <Play className="h-7 w-7 text-white fill-white ml-1" />
+            </div>
           </div>
         </div>
-        <CardContent className="p-3">
-          <h4 className="font-semibold text-sm line-clamp-2 mb-1">
+        <CardContent className="p-5 pt-4">
+          <h4 className="font-semibold text-sm line-clamp-2 mb-1.5 group-hover/card:text-primary transition-colors">
             {episode.title}
           </h4>
-          <p className="text-xs text-muted-foreground line-clamp-1 mb-2">
+          <p className="text-xs text-muted-foreground line-clamp-1 mb-3">
             {episode.podcast.title}
           </p>
           <div className="flex items-center justify-between text-xs text-muted-foreground">

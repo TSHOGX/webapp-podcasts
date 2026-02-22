@@ -4,58 +4,98 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
+    /* 基底色彩 - 更温暖柔和的米白 */
+    --background: 40 20% 98%;         /* 温暖米白 #FDFCFA */
+    --foreground: 220 15% 15%;        /* 柔和炭灰 #1F2128 */
+    --card: 40 15% 99%;               /* 近纯白 */
+    --card-foreground: 220 15% 15%;
+    --popover: 40 15% 99%;
+    --popover-foreground: 220 15% 15%;
+
+    /* 莫兰迪主题色 - 柔和橄榄绿 (默认) */
+    --primary: 82 20% 45%;            /* 柔和橄榄绿 */
+    --primary-foreground: 0 0% 99%;
+    --accent: 82 15% 94%;             /* 极淡橄榄背景 */
+    --accent-foreground: 82 20% 35%;
+
+    /* 中性色阶 - 更柔和 */
+    --muted: 40 10% 96%;
+    --muted-foreground: 220 8% 50%;
+    --secondary: 40 10% 96%;
+    --secondary-foreground: 220 15% 25%;
+
+    /* 边框弱化 - 几乎不可见 */
+    --border: 40 10% 92%;
+    --input: 40 10% 94%;
+    --ring: 82 20% 45%;
+
+    /* 圆角系统 - 更大更柔和 */
+    --radius: 1.25rem;                /* 20px 基础圆角 */
+
+    /* 图表色彩 */
+    --chart-1: 82 25% 42%;
+    --chart-2: 280 15% 50%;
+    --chart-3: 200 25% 48%;
+    --chart-4: 30 15% 45%;
+    --chart-5: 220 15% 15%;
+
+    /* 破坏性色彩 */
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
-    --radius: 0.5rem;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
   }
 
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    --background: 220 15% 10%;        /* 柔和深灰 #14161A */
+    --foreground: 40 10% 94%;
+    --card: 220 12% 14%;              /* 卡片与背景柔和区分 */
+    --card-foreground: 40 10% 94%;
+    --popover: 220 12% 14%;
+    --popover-foreground: 40 10% 94%;
+    --primary: 82 25% 55%;            /* 柔和亮橄榄 */
+    --primary-foreground: 220 20% 10%;
+    --accent: 220 10% 18%;
+    --accent-foreground: 82 25% 60%;
+    --muted: 220 10% 18%;
+    --muted-foreground: 220 8% 60%;
+    --secondary: 220 10% 18%;
+    --secondary-foreground: 40 10% 94%;
+    --border: 220 10% 20%;            /* 几乎不可见 */
+    --input: 220 10% 18%;
+    --ring: 82 25% 55%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+  }
+
+  /* 情绪主题色 - Olive (默认) */
+  [data-theme="olive"] {
+    --primary: 82 25% 42%;
+    --accent: 82 20% 92%;
+    --accent-foreground: 82 20% 35%;
+    --ring: 82 25% 42%;
+  }
+
+  /* 情绪主题色 - Mauve (灰紫) */
+  [data-theme="mauve"] {
+    --primary: 280 15% 50%;
+    --accent: 280 20% 94%;
+    --accent-foreground: 280 15% 40%;
+    --ring: 280 15% 50%;
+  }
+
+  /* 情绪主题色 - Mist (雾蓝) */
+  [data-theme="mist"] {
+    --primary: 200 25% 48%;
+    --accent: 200 20% 93%;
+    --accent-foreground: 200 25% 38%;
+    --ring: 200 25% 48%;
+  }
+
+  /* 情绪主题色 - Taupe (灰褐) */
+  [data-theme="taupe"] {
+    --primary: 30 15% 45%;
+    --accent: 30 15% 93%;
+    --accent-foreground: 30 15% 35%;
+    --ring: 30 15% 45%;
   }
 }
 
@@ -64,7 +104,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
 }
 

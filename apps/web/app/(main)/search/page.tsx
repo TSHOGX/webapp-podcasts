@@ -64,7 +64,7 @@ function SearchResults() {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -85,10 +85,10 @@ function SearchResults() {
 
   return (
     <div>
-      <h2 className="text-lg md:text-2xl font-bold mb-4 md:mb-6">
-        Search Results for &quot;{query}&quot;
+      <h2 className="font-display text-2xl md:text-3xl font-bold mb-6 md:mb-8">
+        Search Results for <span className="text-primary">&quot;{query}&quot;</span>
       </h2>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
         {podcasts.map((podcast) => (
           <PodcastCard key={podcast.id} podcast={podcast} />
         ))}
@@ -99,7 +99,7 @@ function SearchResults() {
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+    <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
       <SearchResults />
     </Suspense>
   );

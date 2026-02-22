@@ -99,17 +99,17 @@ function LoginForm() {
   };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold">Login</CardTitle>
-        <CardDescription>
-          Enter your email and password to access your account
+    <Card className="w-full max-w-md rounded-3xl shadow-soft-lg border-0">
+      <CardHeader className="space-y-2 text-center p-8 pb-4">
+        <CardTitle className="font-display text-3xl font-bold">Welcome Back</CardTitle>
+        <CardDescription className="text-base">
+          Enter your credentials to access your account
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleLogin} className="space-y-4">
+      <CardContent className="p-8 pt-0">
+        <form onSubmit={handleLogin} className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="text-sm font-medium">Email</Label>
             <Input
               id="email"
               type="email"
@@ -117,25 +117,27 @@ function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              className="h-12"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password" className="text-sm font-medium">Password</Label>
             <Input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              className="h-12"
             />
           </div>
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button type="submit" className="w-full h-12 text-base rounded-full" disabled={loading}>
             {loading ? "Logging in..." : "Login"}
           </Button>
         </form>
-        <div className="mt-4 text-center text-sm">
+        <div className="mt-6 text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{" "}
-          <Link href={`/register${returnUrl !== "/" ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ""}`} className="text-primary hover:underline">
+          <Link href={`/register${returnUrl !== "/" ? `?returnUrl=${encodeURIComponent(returnUrl)}` : ""}`} className="text-primary hover:underline font-medium">
             Register
           </Link>
         </div>
@@ -146,8 +148,8 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/50 p-4">
-      <Suspense fallback={<Card className="w-full max-w-md p-6">Loading...</Card>}>
+    <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+      <Suspense fallback={<Card className="w-full max-w-md p-6 rounded-3xl">Loading...</Card>}>
         <LoginForm />
       </Suspense>
     </div>

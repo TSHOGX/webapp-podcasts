@@ -3,28 +3,41 @@
 import { SearchHero } from "@/components/podcast/search-hero";
 import { UserHome } from "@/components/podcast/user-home";
 import { useAuth } from "@/hooks/use-auth";
+import { MainLayout } from "@/components/layout/main-layout";
 import { Loader2 } from "lucide-react";
+
+function LoadingState() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  );
+}
+
+function LandingPage() {
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        <SearchHero />
+      </div>
+    </div>
+  );
+}
 
 export default function HomePage() {
   const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="max-w-4xl mx-auto py-20 flex justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <LoadingState />;
+  }
+
+  if (!isAuthenticated) {
+    return <LandingPage />;
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-4">
-      {isAuthenticated ? (
-        <UserHome userName={user?.user_metadata?.name || user?.email?.split("@")[0]} />
-      ) : (
-        <div className="py-8">
-          <SearchHero />
-        </div>
-      )}
-    </div>
+    <MainLayout>
+      <UserHome userName={user?.user_metadata?.name || user?.email?.split("@")[0]} />
+    </MainLayout>
   );
 }

@@ -25,92 +25,81 @@ export function UserHome({ userName }: UserHomeProps) {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-12">
       {/* Welcome Section */}
-      <div className="text-center space-y-4">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <User className="h-5 w-5 text-primary" />
+      <div className="text-center space-y-6">
+        <div className="flex items-center justify-center mb-4">
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <User className="h-8 w-8 text-primary" />
           </div>
         </div>
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          Welcome back{userName ? `, ${userName}` : ""}
+        <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight">
+          Welcome back{userName ? <>, <span className="text-primary">{userName}</span></> : ""}
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground text-lg max-w-md mx-auto">
           Discover new episodes from your favorite podcasts
         </p>
       </div>
 
       {/* Search Box */}
-      <form onSubmit={handleSearch} className="flex gap-2 max-w-xl mx-auto">
+      <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 max-w-2xl mx-auto">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
             name="query"
             placeholder="Search podcasts..."
-            className="pl-10 h-12"
+            className="pl-14 h-14 text-base"
           />
         </div>
-        <Button type="submit" size="lg">
+        <Button type="submit" size="lg" className="h-14 px-8">
           Search
         </Button>
       </form>
 
-      <Separator />
+      <Separator className="opacity-50" />
 
       {/* Latest Updates */}
       <section>
         <FavoriteUpdates />
       </section>
 
-      <Separator />
+      <Separator className="opacity-50" />
 
-      {/* Favorites Quick Access */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Your Favorites</h3>
-          <Link
-            href="/favorites"
-            className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
-          >
-            Manage
-            <ChevronRight className="h-4 w-4" />
-          </Link>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Link href="/favorites" className="flex-1">
-            <Button
-              variant="outline"
-              className="w-full h-auto py-6 justify-start gap-4"
-            >
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                <Heart className="h-5 w-5 text-red-500 fill-red-500" />
-              </div>
-              <div className="text-left">
-                <p className="font-medium">View All Favorites</p>
-                <p className="text-sm text-muted-foreground">
-                  Browse and manage your saved podcasts
-                </p>
-              </div>
-            </Button>
-          </Link>
-          <Link href="/search" className="flex-1">
-            <Button
-              variant="outline"
-              className="w-full h-auto py-6 justify-start gap-4"
-            >
-              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                <Search className="h-5 w-5 text-blue-500" />
-              </div>
-              <div className="text-left">
-                <p className="font-medium">Discover New Podcasts</p>
-                <p className="text-sm text-muted-foreground">
-                  Search millions of podcasts
-                </p>
-              </div>
-            </Button>
-          </Link>
-        </div>
+      {/* Quick Access Cards */}
+      <section className="grid sm:grid-cols-2 gap-4">
+        <Link href="/favorites" className="group">
+          <div className="flex items-center gap-5 p-6 rounded-3xl bg-muted/50 hover:bg-accent transition-colors duration-200">
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+              <Heart className="h-6 w-6 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-base mb-1 group-hover:text-primary transition-colors">
+                View All Favorites
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Browse and manage your saved podcasts
+              </p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+          </div>
+        </Link>
+
+        <Link href="/search" className="group">
+          <div className="flex items-center gap-5 p-6 rounded-3xl bg-muted/50 hover:bg-accent transition-colors duration-200">
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+              <Search className="h-6 w-6 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-base mb-1 group-hover:text-primary transition-colors">
+                Discover New Podcasts
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Search millions of podcasts
+              </p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+          </div>
+        </Link>
       </section>
     </div>
   );

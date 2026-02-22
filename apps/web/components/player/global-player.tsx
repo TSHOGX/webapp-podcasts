@@ -106,11 +106,11 @@ export function GlobalPlayer() {
         onEnded={() => setIsPlaying(false)}
       />
 
-      <div className="fixed bottom-0 left-0 right-0 bg-card border-t p-3 md:p-4 z-50 md:bottom-0 bottom-16">
-        <div className="flex items-center gap-2 md:gap-4">
-          {/* Episode Info - Simplified on mobile */}
-          <div className="w-auto md:w-64 shrink-0 flex items-center gap-2 md:gap-3">
-            <div className="w-10 h-10 md:w-14 md:h-14 relative bg-muted rounded overflow-hidden shrink-0">
+      <div className="fixed bottom-0 left-0 right-0 bg-card/90 backdrop-blur-xl p-5 md:p-6 z-50">
+        <div className="max-w-6xl mx-auto flex items-center gap-5 md:gap-8">
+          {/* Episode Info */}
+          <div className="shrink-0 flex items-center gap-4">
+            <div className="w-14 h-14 md:w-[72px] md:h-[72px] relative bg-muted rounded-2xl overflow-hidden shadow-soft">
               {currentEpisode.podcastImage ? (
                 <Image
                   src={currentEpisode.podcastImage}
@@ -124,10 +124,8 @@ export function GlobalPlayer() {
                 </div>
               )}
             </div>
-            <div className="min-w-0 hidden md:block">
-              <p className="font-medium text-sm truncate">
-                {currentEpisode.title}
-              </p>
+            <div className="hidden md:block min-w-0 max-w-[220px]">
+              <p className="font-medium text-sm truncate">{currentEpisode.title}</p>
               <p className="text-xs text-muted-foreground truncate">
                 {currentEpisode.podcastTitle}
               </p>
@@ -135,37 +133,37 @@ export function GlobalPlayer() {
           </div>
 
           {/* Controls */}
-          <div className="flex-1 flex flex-col items-center gap-1 md:gap-2">
-            <div className="flex items-center gap-1 md:gap-2">
+          <div className="flex-1 flex flex-col items-center gap-3">
+            <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 md:h-10 md:w-10"
+                className="h-11 w-11 rounded-full hover:bg-accent"
                 onClick={() => skipBackward(10)}
               >
-                <SkipBack className="h-3 w-3 md:h-4 md:w-4" />
+                <SkipBack className="h-4 w-4" />
               </Button>
 
               <Button
-                variant="outline"
+                variant="default"
                 size="icon"
-                className="h-8 w-8 md:h-10 md:w-10"
+                className="h-14 w-14 rounded-full shadow-soft"
                 onClick={() => setIsPlaying(!isPlaying)}
               >
                 {isPlaying ? (
-                  <Pause className="h-3 w-3 md:h-4 md:w-4" />
+                  <Pause className="h-6 w-6" />
                 ) : (
-                  <Play className="h-3 w-3 md:h-4 md:w-4" />
+                  <Play className="h-6 w-6 ml-0.5" />
                 )}
               </Button>
 
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 md:h-10 md:w-10"
+                className="h-11 w-11 rounded-full hover:bg-accent"
                 onClick={() => skipForward(30)}
               >
-                <SkipForward className="h-3 w-3 md:h-4 md:w-4" />
+                <SkipForward className="h-4 w-4" />
               </Button>
             </div>
 
@@ -194,9 +192,14 @@ export function GlobalPlayer() {
             </div>
           </div>
 
-          {/* Volume - Hidden on mobile */}
-          <div className="hidden md:flex w-48 items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={toggleMute}>
+          {/* Volume */}
+          <div className="hidden md:flex w-44 items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 rounded-full hover:bg-accent"
+              onClick={toggleMute}
+            >
               {isMuted ? (
                 <VolumeX className="h-4 w-4" />
               ) : (
@@ -212,6 +215,9 @@ export function GlobalPlayer() {
           </div>
         </div>
       </div>
+
+      {/* Mobile spacing for bottom nav */}
+      <div className="md:hidden h-24" />
     </>
   );
 }
