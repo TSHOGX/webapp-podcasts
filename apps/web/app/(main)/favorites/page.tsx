@@ -10,6 +10,7 @@ import { ProtectedContent } from "@/components/auth/protected-content";
 import { Favorite } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 import { getApiUrl } from "@/lib/utils";
+import { FavoriteUpdates } from "@/components/podcast/favorite-updates";
 
 function FavoritesContent() {
   const [favorites, setFavorites] = useState<Favorite[]>([]);
@@ -76,6 +77,11 @@ function FavoritesContent() {
   return (
     <div className="space-y-8">
       <h1 className="font-display text-2xl md:text-3xl font-bold">Favorites</h1>
+
+      {/* Latest Updates Section */}
+      <section className="mb-12">
+        <FavoriteUpdates linkToEpisode={true} showViewAll={true} />
+      </section>
 
       {favorites.length === 0 ? (
         <div className="text-center text-muted-foreground py-20 bg-muted/30 rounded-3xl">

@@ -21,6 +21,7 @@ interface EpisodeCardProps {
     };
   };
   variant?: "horizontal" | "vertical";
+  linkToEpisode?: boolean;
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -46,14 +47,14 @@ function formatRelativeTime(dateString: string): string {
   }
 }
 
-export function EpisodeCard({ episode, variant = "vertical" }: EpisodeCardProps) {
-  const podcastLink = `/${episode.podcast.id}${
-    episode.podcast.itunesId ? `?itunesId=${episode.podcast.itunesId}` : ""
-  }`;
+export function EpisodeCard({ episode, variant = "vertical", linkToEpisode = false }: EpisodeCardProps) {
+  const href = linkToEpisode
+    ? `/episodes/${encodeURIComponent(episode.id)}?podcastId=${encodeURIComponent(episode.podcast.id)}`
+    : `/${episode.podcast.id}${episode.podcast.itunesId ? `?itunesId=${episode.podcast.itunesId}` : ""}`;
 
   if (variant === "horizontal") {
     return (
-      <Link href={podcastLink} className="group block">
+      <Link href={href} className="group block">
         <Card className="overflow-hidden hover:shadow-soft-lg transition-shadow duration-300">
           <CardContent className="p-5">
             <div className="flex gap-5">
@@ -99,7 +100,7 @@ export function EpisodeCard({ episode, variant = "vertical" }: EpisodeCardProps)
   }
 
   return (
-    <Link href={podcastLink} className="group block">
+    <Link href={href} className="group block">
       <Card className="overflow-hidden h-full group/card">
         <div className="aspect-square relative bg-muted overflow-hidden rounded-2xl">
           {episode.podcast.artworkUrl ? (

@@ -23,7 +23,12 @@ interface FavoriteUpdate {
   };
 }
 
-export function FavoriteUpdates() {
+interface FavoriteUpdatesProps {
+  linkToEpisode?: boolean;
+  showViewAll?: boolean;
+}
+
+export function FavoriteUpdates({ linkToEpisode = false, showViewAll = false }: FavoriteUpdatesProps) {
   const [updates, setUpdates] = useState<FavoriteUpdate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -97,19 +102,21 @@ export function FavoriteUpdates() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold">Latest from Your Favorites</h3>
-        <Link
-          href="/favorites"
-          className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
-        >
-          View All
-          <ChevronRight className="h-4 w-4" />
-        </Link>
+        {showViewAll && (
+          <Link
+            href="/favorites/updates"
+            className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
+          >
+            View All
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+        )}
       </div>
 
       {/* Desktop: Grid, Mobile: Horizontal scroll */}
       <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {updates.slice(0, 8).map((episode) => (
-          <EpisodeCard key={`${episode.podcast.id}-${episode.id}`} episode={episode} />
+          <EpisodeCard key={`${episode.podcast.id}-${episode.id}`} episode={episode} linkToEpisode={linkToEpisode} />
         ))}
       </div>
 
@@ -118,7 +125,7 @@ export function FavoriteUpdates() {
         <div className="flex gap-4 pb-4" style={{ width: "max-content" }}>
           {updates.map((episode) => (
             <div key={`${episode.podcast.id}-${episode.id}`} className="w-40 flex-shrink-0">
-              <EpisodeCard episode={episode} />
+              <EpisodeCard episode={episode} linkToEpisode={linkToEpisode} />
             </div>
           ))}
         </div>

@@ -186,8 +186,10 @@ export async function GET(request: Request) {
       const podcast = f.podcast;
       if (!podcast) return [];
 
+      // Use itunes_id as podcast id if available, otherwise fall back to database id
+      const effectivePodcastId = podcast.itunes_id ? String(podcast.itunes_id) : podcast.id;
       return fetchLatestEpisodes(
-        podcast.id,
+        effectivePodcastId,
         podcast.rss_url,
         podcast.title,
         podcast.artwork_url,

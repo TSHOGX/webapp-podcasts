@@ -60,7 +60,7 @@ export function UserHome({ userName }: UserHomeProps) {
 
       {/* Latest Updates */}
       <section>
-        <FavoriteUpdates />
+        <FavoriteUpdates linkToEpisode={true} showViewAll={true} />
       </section>
 
       <Separator className="opacity-50" />

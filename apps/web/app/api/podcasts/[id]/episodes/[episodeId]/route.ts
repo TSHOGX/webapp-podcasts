@@ -13,6 +13,7 @@ interface RSSItem {
   pubDate?: string;
   duration?: string;
   "itunes:duration"?: string;
+  guid?: string | { "#text": string };
 }
 
 interface RSSChannel {
@@ -55,7 +56,7 @@ async function fetchPodcastFromiTunes(id: string): Promise<ITunesPodcast | null>
   }
 }
 
-async function parseRSSFeed(feedUrl: string) {
+async function parseRSSFeed(feedUrl: string, targetEpisodeId?: string) {
   try {
     const response = await fetch(feedUrl, { next: { revalidate: 3600 } });
     const xml = await response.text();
@@ -87,8 +88,17 @@ async function parseRSSFeed(feedUrl: string) {
         }
       }
 
+      // Generate episode ID from guid or title+pubDate (same logic as favorites API)
+      const episodeId =
+        typeof item.guid === "string"
+          ? item.guid
+          : typeof item.guid?.["#text"] === "string"
+          ? item.guid["#text"]
+          : `${item.title}-${item.pubDate}`;
+
       return {
-        id: `ep-${index}`,
+        id: episodeId,
+        legacyId: `ep-${index}`,
         title: item.title || "Untitled",
         description: item.description || item["content:encoded"] || "",
         audioUrl: item.enclosure?.["@_url"] || "",
@@ -97,6 +107,21 @@ async function parseRSSFeed(feedUrl: string) {
       };
     });
 
+    // If looking for a specific episode, try to find it
+    if (targetEpisodeId) {
+      const episode = episodes.find(
+        (ep) => ep.id === targetEpisodeId || ep.legacyId === targetEpisodeId
+      );
+      if (episode) {
+        return {
+          title: channel.title || "",
+          description: channel.description || "",
+          episode,
+          episodes,
+        };
+      }
+    }
+
     return {
       title: channel.title || "",
       description: channel.description || "",
@@ -104,7 +129,7 @@ async function parseRSSFeed(feedUrl: string) {
     };
   } catch (error) {
     console.error("RSS parse error:", error);
-    return { title: "", description: "", episodes: [] };
+    return { title: "", description: "", episodes: [], episode: null };
   }
 }
 
@@ -125,18 +150,17 @@ export async function GET(
       );
     }
 
-    // Parse RSS feed to get episodes
-    const rssData = await parseRSSFeed(podcast.feedUrl);
+    // Parse RSS feed to find the specific episode
+    const rssData = await parseRSSFeed(podcast.feedUrl, episodeId);
 
-    // Find the specific episode by ID
-    const episode = rssData.episodes.find((ep) => ep.id === episodeId);
-
-    if (!episode) {
+    if (!rssData.episode) {
       return NextResponse.json(
         { error: "Episode not found" },
         { status: 404 }
       );
     }
+
+    const episode = rssData.episode;
 
     return NextResponse.json({
       id: episode.id,
