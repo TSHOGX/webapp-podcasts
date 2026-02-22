@@ -12,6 +12,7 @@ export interface Podcast {
 
 export interface Episode {
   id: string;
+  guid?: string;  // RSS GUID for stable episode identification
   podcastId?: string;
   title: string;
   description?: string;

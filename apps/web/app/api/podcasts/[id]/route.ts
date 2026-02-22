@@ -13,6 +13,7 @@ interface RSSItem {
   pubDate?: string;
   duration?: string;
   "itunes:duration"?: string;
+  guid?: string | { "#text"?: string; "@_isPermaLink"?: string };
 }
 
 interface RSSChannel {
@@ -73,7 +74,7 @@ async function parseRSSFeed(feedUrl: string) {
       ? [channel.item]
       : [];
 
-    const episodes = items.map((item, index) => {
+    const episodes = items.map((item) => {
       const durationStr = item["itunes:duration"] || item.duration;
       let duration = 0;
       if (durationStr) {
@@ -87,8 +88,16 @@ async function parseRSSFeed(feedUrl: string) {
         }
       }
 
+      // Use RSS GUID as episode ID for stability and consistency
+      const episodeId =
+        typeof item.guid === "string"
+          ? item.guid
+          : typeof item.guid?.["#text"] === "string"
+          ? item.guid["#text"]
+          : `${item.title}-${item.pubDate}`;
+
       return {
-        id: `ep-${index}`,
+        id: episodeId,
         title: item.title || "Untitled",
         description: item.description || item["content:encoded"] || "",
         audioUrl: item.enclosure?.["@_url"] || "",

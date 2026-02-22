@@ -19,11 +19,13 @@ export async function GET() {
         completed_at,
         episode:episode_id (
           id,
+          guid,
           title,
           audio_url,
           duration,
           podcast:podcast_id (
             id,
+            itunes_id,
             title,
             artwork_url
           )
@@ -36,7 +38,20 @@ export async function GET() {
       throw dbError;
     }
 
-    return NextResponse.json({ transcriptions: transcriptions || [] });
+    // Transform snake_case to camelCase to match TypeScript types
+    const transformedTranscriptions = transcriptions?.map((t: any) => ({
+      ...t,
+      episode: t.episode ? {
+        ...t.episode,
+        podcast: t.episode.podcast ? {
+          ...t.episode.podcast,
+          itunesId: t.episode.podcast.itunes_id,
+          artworkUrl: t.episode.podcast.artwork_url,
+        } : null,
+      } : null,
+    })) || [];
+
+    return NextResponse.json({ transcriptions: transformedTranscriptions });
   } catch (error) {
     console.error("Fetch transcriptions error:", error);
     return NextResponse.json(

@@ -226,11 +226,38 @@ export async function POST(request: Request) {
     }
 
     // Get or create episode record (use service client to bypass RLS)
-    const { data: episode, error: episodeError } = await serviceSupabase
-      .from("pc_episodes")
-      .select("id")
-      .eq("audio_url", audioUrl)
-      .maybeSingle();
+    // Try to find by guid first (if provided), then by audio_url
+    let episode = null;
+    let episodeError = null;
+
+    if (episodeId) {
+      const { data: episodeByGuid, error: guidError } = await serviceSupabase
+        .from("pc_episodes")
+        .select("id, guid")
+        .eq("guid", episodeId)
+        .maybeSingle();
+
+      if (guidError) {
+        episodeError = guidError;
+      } else if (episodeByGuid) {
+        episode = episodeByGuid;
+      }
+    }
+
+    // If not found by guid, try by audio_url
+    if (!episode && !episodeError) {
+      const { data: episodeByAudio, error: audioError } = await serviceSupabase
+        .from("pc_episodes")
+        .select("id, guid")
+        .eq("audio_url", audioUrl)
+        .maybeSingle();
+
+      if (audioError) {
+        episodeError = audioError;
+      } else {
+        episode = episodeByAudio;
+      }
+    }
 
     if (episodeError) {
       throw episodeError;
@@ -239,13 +266,14 @@ export async function POST(request: Request) {
     let episodeDbId = episode?.id;
 
     if (!episodeDbId) {
-      // Create episode record
+      // Create episode record with RSS GUID
       const { data: newEpisode, error: createError } = await serviceSupabase
         .from("pc_episodes")
         .insert({
           podcast_id: resolvedPodcastId,
           title: episodeTitle || "Unknown Episode",
           audio_url: audioUrl,
+          guid: episodeId, // Store RSS GUID for URL generation
         })
         .select("id")
         .single();
@@ -254,6 +282,12 @@ export async function POST(request: Request) {
         throw createError;
       }
       episodeDbId = newEpisode.id;
+    } else if (episode && !episode.guid && episodeId) {
+      // Update existing episode with guid if not set
+      await serviceSupabase
+        .from("pc_episodes")
+        .update({ guid: episodeId })
+        .eq("id", episodeDbId);
     }
 
     // Check if transcription already exists

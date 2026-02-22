@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, FileText, Search, Download, Trash2, Copy, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { Loader2, FileText, Search, Download, Trash2, Copy, CheckCircle2, Clock, AlertCircle, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -182,112 +183,167 @@ function TranscriptionsContent() {
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredTranscriptions.map((transcription) => (
-            <Card key={transcription.id} className="overflow-hidden">
-              <CardHeader className="pb-4">
-                <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-                      <FileText className="h-5 w-5 text-primary" />
+          {filteredTranscriptions.map((transcription) => {
+            const cardContent = (
+              <Card
+                key={transcription.id}
+                className={cn(
+                  "overflow-hidden group",
+                  transcription.episode?.id && "hover:border-primary/50 transition-colors"
+                )}
+              >
+                <CardHeader className="pb-4">
+                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <FileText className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-base leading-snug mb-1 flex items-center gap-2">
+                          {transcription.episode?.title || "Unknown Episode"}
+                          {transcription.episode?.id && (
+                            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                          )}
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          {transcription.episode?.podcast?.title || "Unknown Podcast"}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <CardTitle className="text-base leading-snug mb-1">
-                        {transcription.episode?.title || "Unknown Episode"}
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        {transcription.episode?.podcast?.title || "Unknown Podcast"}
+                    {getStatusBadge(transcription.status)}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {transcription.status === "completed" && transcription.text && (
+                    <>
+                      <p className="text-sm text-muted-foreground line-clamp-3 mb-4 leading-relaxed">
+                        {transcription.text}
                       </p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleCopy(transcription);
+                          }}
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleExport(transcription, "txt");
+                          }}
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Export TXT
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleExport(transcription, "md");
+                          }}
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Export MD
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleDelete(transcription.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                  {transcription.status === "processing" && (
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        Transcribing...
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleDelete(transcription.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                  {getStatusBadge(transcription.status)}
-                </div>
-              </CardHeader>
-              <CardContent>
-                {transcription.status === "completed" && transcription.text && (
-                  <>
-                    <p className="text-sm text-muted-foreground line-clamp-3 mb-4 leading-relaxed">
-                      {transcription.text}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-full"
-                        onClick={() => handleCopy(transcription)}
-                      >
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-full"
-                        onClick={() => handleExport(transcription, "txt")}
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Export TXT
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-full"
-                        onClick={() => handleExport(transcription, "md")}
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Export MD
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-full hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20"
-                        onClick={() => handleDelete(transcription.id)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </Button>
+                  )}
+                  {transcription.status === "failed" && (
+                    <div className="flex flex-col gap-3">
+                      <div className="text-sm text-destructive">
+                        {transcription.errorMessage || "Transcription failed"}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleDelete(transcription.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </Button>
+                      </div>
                     </div>
-                  </>
-                )}
-                {transcription.status === "processing" && (
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                      Transcribing...
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-full hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20"
-                        onClick={() => handleDelete(transcription.id)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                )}
-                {transcription.status === "failed" && (
-                  <div className="flex flex-col gap-3">
-                    <div className="text-sm text-destructive">
-                      {transcription.errorMessage || "Transcription failed"}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-full hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20"
-                        onClick={() => handleDelete(transcription.id)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                  )}
+                </CardContent>
+              </Card>
+            );
+
+            if (transcription.episode?.id) {
+              // Use guid (RSS GUID) as episode id if available, otherwise fall back to database id
+              const effectiveEpisodeId = transcription.episode.guid || transcription.episode.id;
+              // Use itunes_id as podcast id if available, otherwise fall back to database id
+              const effectivePodcastId = transcription.episode.podcast?.itunesId
+                ? String(transcription.episode.podcast.itunesId)
+                : transcription.episode.podcast?.id || "";
+              return (
+                <Link
+                  key={transcription.id}
+                  href={`/episodes/${encodeURIComponent(effectiveEpisodeId)}?podcastId=${encodeURIComponent(effectivePodcastId)}`}
+                  className="block"
+                >
+                  {cardContent}
+                </Link>
+              );
+            }
+
+            return cardContent;
+          })}
         </div>
       )}
     </div>

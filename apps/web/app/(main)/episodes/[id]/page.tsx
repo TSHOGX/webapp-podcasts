@@ -2,14 +2,16 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useSearchParams, useParams } from "next/navigation";
-import { Loader2, Play, FileText } from "lucide-react";
+import { Loader2, Play, FileText, Copy, Download, ChevronUp, CheckCircle2, FileTextIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePlayerStore } from "@/store/player-store";
 import { useToast } from "@/hooks/use-toast";
 import { Episode } from "@/types";
 import { getApiUrl } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface EpisodeDetail extends Episode {
   podcastTitle: string;
@@ -24,6 +26,8 @@ export default function EpisodeDetailPage() {
   const [transcribing, setTranscribing] = useState(false);
   const [transcriptionStatus, setTranscriptionStatus] = useState<string | null>(null);
   const [transcriptionText, setTranscriptionText] = useState<string | null>(null);
+  const [showTranscription, setShowTranscription] = useState(false);
+  const [copied, setCopied] = useState(false);
   const searchParams = useSearchParams();
   const params = useParams();
   const id = params.id as string;
@@ -90,6 +94,55 @@ export default function EpisodeDetailPage() {
         podcastImage: episode.podcastImage,
       });
     }
+  };
+
+  const handleCopy = async () => {
+    if (!transcriptionText) return;
+    try {
+      await navigator.clipboard.writeText(transcriptionText);
+      setCopied(true);
+      toast({
+        title: "Copied",
+        description: "Transcription copied to clipboard",
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to copy to clipboard",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExport = (format: "txt" | "md") => {
+    if (!transcriptionText || !episode) return;
+
+    let content = "";
+    if (format === "md") {
+      content = `# ${episode.title}\n\n${transcriptionText}`;
+    } else {
+      content = `${episode.title}\n\n${transcriptionText}`;
+    }
+
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${episode.title}.${format}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const getWordCount = (text: string) => {
+    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+  };
+
+  const getReadingTime = (wordCount: number) => {
+    const minutes = Math.ceil(wordCount / 200);
+    return minutes;
   };
 
   const handleTranscribe = async () => {
@@ -200,15 +253,30 @@ export default function EpisodeDetailPage() {
             </Button>
 
             {transcriptionStatus === "completed" ? (
-              <Button variant="outline" disabled className="rounded-full h-12 px-6">
-                <FileText className="h-4 w-4 mr-2" />
-                Transcribed
+              <Button
+                variant="outline"
+                onClick={() => setShowTranscription(!showTranscription)}
+                className="rounded-full h-12 px-6"
+              >
+                {showTranscription ? (
+                  <>
+                    <ChevronUp className="h-4 w-4 mr-2" />
+                    Hide Transcription
+                  </>
+                ) : (
+                  <>
+                    <FileTextIcon className="h-4 w-4 mr-2" />
+                    View Transcription
+                  </>
+                )}
               </Button>
-            ) : transcriptionStatus === "processing" ? (
-              <Button variant="outline" disabled className="rounded-full h-12 px-6">
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Transcribing...
-              </Button>
+            ) : transcriptionStatus === "processing" || transcriptionStatus === "pending" ? (
+              <Link href="/transcriptions">
+                <Button variant="outline" className="rounded-full h-12 px-6">
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Processing...
+                </Button>
+              </Link>
             ) : (
               <Button
                 variant="outline"
@@ -230,16 +298,79 @@ export default function EpisodeDetailPage() {
 
       {/* Transcription Result */}
       {transcriptionStatus === "completed" && transcriptionText && (
-        <Card className="overflow-hidden">
-          <CardHeader>
-            <CardTitle className="font-display text-xl">Transcription</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="prose max-w-none">
-              <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground">{transcriptionText}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className={cn(
+          "overflow-hidden transition-all duration-300 ease-in-out",
+          showTranscription ? "opacity-100 max-h-[800px]" : "opacity-0 max-h-0"
+        )}>
+          <Card className="overflow-hidden border-primary/20">
+            <CardHeader className="pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
+                    <FileText className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="font-display text-xl">Transcription</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {getWordCount(transcriptionText).toLocaleString()} words ·
+                      {getReadingTime(getWordCount(transcriptionText))} min read
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopy}
+                    className="rounded-full"
+                  >
+                    {copied ? (
+                      <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
+                    ) : (
+                      <Copy className="h-4 w-4 mr-2" />
+                    )}
+                    {copied ? "Copied" : "Copy"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleExport("txt")}
+                    className="rounded-full"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    TXT
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleExport("md")}
+                    className="rounded-full"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    MD
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowTranscription(false)}
+                    className="rounded-full"
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+                <div className="prose max-w-none">
+                  <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground">
+                    {transcriptionText}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* Episode Description */}
