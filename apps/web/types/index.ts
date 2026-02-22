@@ -44,7 +44,7 @@ export interface Transcription {
   id: string;
   userId?: string;
   episodeId?: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
   text?: string;
   segments?: TranscriptionSegment[];
   language?: string;
@@ -52,6 +52,7 @@ export interface Transcription {
   createdAt?: string;
   completedAt?: string;
   episode?: EpisodeWithPodcast;
+  taskId?: string;  // FastAPI task ID for cancellation
 }
 
 export interface Favorite {

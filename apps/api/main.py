@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from supabase import create_client, Client
 
 from transcribe import transcribe_audio, download_audio
+from transcription_process import TranscriptionProcess, process_manager
 
 # Configuration
 TEMP_AUDIO_DIR = os.getenv("TEMP_AUDIO_DIR", "/tmp/podcast-transcribe")
@@ -99,6 +100,9 @@ async def lifespan(app: FastAPI):
             await worker_task
         except asyncio.CancelledError:
             pass
+    # Clean up all transcription processes
+    print("Cleaning up transcription processes...")
+    process_manager.cleanup_all()
 
 
 app = FastAPI(
@@ -200,8 +204,8 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str):
                 "error": task.get("error")
             })
 
-            # Close connection if task is completed or failed
-            if task.get("status") in ["completed", "failed"]:
+            # Close connection if task is completed, failed, or cancelled
+            if task.get("status") in ["completed", "failed", "cancelled"]:
                 await websocket.close()
                 break
 
@@ -279,12 +283,60 @@ async def handle_timeout(task_id: str):
         )
 
 
+@app.post("/transcribe/{task_id}/cancel")
+async def cancel_transcription(task_id: str):
+    """Cancel a pending or processing transcription task"""
+    if task_id not in transcription_tasks:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    task = transcription_tasks[task_id]
+    current_status = task.get("status")
+
+    # Can only cancel pending or processing tasks
+    if current_status not in ["pending", "processing"]:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot cancel transcription with status '{current_status}'"
+        )
+
+    # Try to cancel the process if it's running
+    cancelled = process_manager.cancel_process(task_id, timeout=5.0)
+
+    # Update task status
+    task["status"] = "cancelled"
+    task["progress"] = 0.0
+
+    # Update database
+    await update_transcription_in_db(
+        task.get("episode_id"),
+        "cancelled",
+        error="Transcription cancelled by user"
+    )
+
+    # Clean up the process from tracking
+    process_manager.remove_process(task_id)
+
+    return {
+        "task_id": task_id,
+        "status": "cancelled",
+        "message": "Transcription cancelled successfully"
+    }
+
+
 async def transcription_worker():
-    """Queue worker coroutine - serial processing"""
+    """Queue worker coroutine - serial processing with process-based transcription"""
     global current_processing
     while True:
         try:
             item = await transcription_queue.get()
+
+            # Check if task was cancelled while in queue
+            if item.task_id in transcription_tasks:
+                task = transcription_tasks[item.task_id]
+                if task.get("status") == "cancelled":
+                    transcription_queue.task_done()
+                    continue
+
             current_processing = item
             item.started_at = datetime.now()
 
@@ -302,6 +354,9 @@ async def transcription_worker():
 
             current_processing = None
             transcription_queue.task_done()
+
+            # Clean up finished processes periodically
+            process_manager.cleanup_finished()
         except Exception as e:
             print(f"Worker error: {e}")
             await asyncio.sleep(1)
@@ -333,12 +388,17 @@ async def mark_stalled_transcriptions():
 
 
 async def process_transcription(task_id: str, audio_url: str):
-    """Process transcription task"""
+    """Process transcription task using process-based approach for cancellation support"""
     task = transcription_tasks[task_id]
     temp_file = None
     episode_id = task.get("episode_id")
 
     try:
+        # Check if task was cancelled before starting
+        if task.get("status") == "cancelled":
+            print(f"Task {task_id} was cancelled before processing started")
+            return
+
         # Update status to processing in DB
         if episode_id:
             await update_transcription_in_db(episode_id, "processing")
@@ -357,13 +417,57 @@ async def process_transcription(task_id: str, audio_url: str):
         # Update progress
         task["progress"] = 0.3
 
-        # Transcribe audio using mlx-whisper
-        result = await transcribe_audio(temp_file, task)
+        # Check again if cancelled after download
+        if task.get("status") == "cancelled":
+            print(f"Task {task_id} was cancelled after download")
+            return
 
-        if result:
-            task["text"] = result["text"]
-            task["segments"] = result.get("segments", [])
-            task["language"] = result.get("language", "en")
+        # Create progress callback
+        def on_progress(progress: float):
+            # Scale progress from 0.3-0.9 range
+            scaled_progress = 0.3 + (progress * 0.6)
+            task["progress"] = scaled_progress
+
+        # Get model from environment
+        model = os.getenv("WHISPER_MODEL", "mlx-community/whisper-large-v3-turbo")
+
+        # Create and start transcription process
+        process = process_manager.create_process(
+            task_id=task_id,
+            audio_path=temp_file,
+            model=model,
+            on_progress=on_progress
+        )
+
+        process.start()
+
+        # Poll until process completes or is cancelled
+        while True:
+            # Check if cancelled
+            if task.get("status") == "cancelled":
+                print(f"Task {task_id} cancellation detected during processing")
+                process.cancel(timeout=5.0)
+                process_manager.remove_process(task_id)
+                return
+
+            # Poll for updates
+            completed = process.poll()
+
+            if completed:
+                result = process.get_result()
+                break
+
+            # Small sleep to avoid busy-waiting
+            await asyncio.sleep(0.5)
+
+        # Clean up process
+        process_manager.remove_process(task_id)
+
+        # Check result
+        if result and result.success:
+            task["text"] = result.text
+            task["segments"] = result.segments or []
+            task["language"] = result.language or "en"
             task["status"] = "completed"
             task["progress"] = 1.0
 
@@ -372,21 +476,24 @@ async def process_transcription(task_id: str, audio_url: str):
                 await update_transcription_in_db(
                     episode_id,
                     "completed",
-                    text=result["text"],
-                    segments=result.get("segments", []),
-                    language=result.get("language", "en")
+                    text=result.text,
+                    segments=result.segments,
+                    language=result.language
                 )
         else:
-            raise Exception("Transcription failed")
+            error_msg = result.error if result else "Transcription failed"
+            raise Exception(error_msg)
 
     except Exception as e:
-        task["status"] = "failed"
-        task["error"] = str(e)
-        print(f"Transcription error for task {task_id}: {e}")
+        # Don't overwrite cancelled status
+        if task.get("status") != "cancelled":
+            task["status"] = "failed"
+            task["error"] = str(e)
+            print(f"Transcription error for task {task_id}: {e}")
 
-        # Update database with error
-        if episode_id:
-            await update_transcription_in_db(episode_id, "failed", error=str(e))
+            # Update database with error
+            if episode_id:
+                await update_transcription_in_db(episode_id, "failed", error=str(e))
 
     finally:
         # Clean up temp file

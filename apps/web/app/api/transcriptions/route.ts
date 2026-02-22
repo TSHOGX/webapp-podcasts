@@ -19,6 +19,7 @@ export async function GET() {
         error_message,
         created_at,
         completed_at,
+        task_id,
         episode:episode_id (
           id,
           guid,
@@ -43,6 +44,7 @@ export async function GET() {
     // Transform snake_case to camelCase to match TypeScript types
     const transformedTranscriptions = transcriptions?.map((t: any) => ({
       ...t,
+      taskId: t.task_id,
       episode: t.episode ? {
         ...t.episode,
         podcast: t.episode.podcast ? {

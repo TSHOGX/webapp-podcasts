@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams, useParams } from "next/navigation";
-import { Loader2, Play, FileText, Copy, Download, ChevronUp, CheckCircle2, FileTextIcon } from "lucide-react";
+import { Loader2, Play, FileText, Copy, Download, ChevronUp, CheckCircle2, FileTextIcon, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePlayerStore } from "@/store/player-store";
@@ -212,6 +212,51 @@ export default function EpisodeDetailPage() {
     return minutes;
   };
 
+  const handleCancelTranscription = async () => {
+    if (!transcriptionStatus || !["pending", "processing"].includes(transcriptionStatus)) return;
+
+    try {
+      // First we need to get the transcription id
+      const checkResponse = await fetch(getApiUrl("api/transcriptions/check"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ audioUrl: episode?.audioUrl }),
+      });
+
+      if (!checkResponse.ok) {
+        throw new Error("Failed to find transcription");
+      }
+
+      const data = await checkResponse.json();
+      if (!data.transcription?.id) {
+        throw new Error("Transcription not found");
+      }
+
+      const response = await fetch(getApiUrl(`api/transcriptions/${data.transcription.id}/cancel`), {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to cancel transcription");
+      }
+
+      setTranscriptionStatus("cancelled");
+      toast({
+        title: "Success",
+        description: "Transcription cancelled successfully",
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to cancel transcription",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleTranscribe = async () => {
     if (!episode?.audioUrl) return;
 
@@ -340,12 +385,38 @@ export default function EpisodeDetailPage() {
                 )}
               </Button>
             ) : transcriptionStatus === "processing" || transcriptionStatus === "pending" ? (
-              <Link href="/transcriptions">
-                <Button variant="outline" className="rounded-full h-12 px-6">
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Processing...
+              <div className="flex flex-wrap gap-3">
+                <Link href="/transcriptions">
+                  <Button variant="outline" className="rounded-full h-12 px-6">
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Processing...
+                  </Button>
+                </Link>
+                <Button
+                  variant="outline"
+                  onClick={handleCancelTranscription}
+                  className="rounded-full h-12 px-6 hover:bg-orange-100 hover:text-orange-600 hover:border-orange-200"
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Cancel
                 </Button>
-              </Link>
+              </div>
+            ) : transcriptionStatus === "cancelled" ? (
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  variant="outline"
+                  onClick={handleTranscribe}
+                  disabled={transcribing}
+                  className="rounded-full h-12 px-6"
+                >
+                  {transcribing ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <FileText className="h-4 w-4 mr-2" />
+                  )}
+                  Transcribe Again
+                </Button>
+              </div>
             ) : (
               <Button
                 variant="outline"

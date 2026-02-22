@@ -315,19 +315,44 @@ export async function POST(request: Request) {
       });
     }
 
-    // Create transcription record (use service client to bypass RLS)
-    const { data: transcription, error: transcriptionError } = await serviceSupabase
-      .from("pc_transcriptions")
-      .insert({
-        user_id: user.id,
-        episode_id: episodeDbId,
-        status: "pending",
-      })
-      .select("id")
-      .single();
+    let transcriptionId: string;
 
-    if (transcriptionError) {
-      throw transcriptionError;
+    // If there's a cancelled or failed transcription, reset it to pending
+    if (existingTranscription && (existingTranscription.status === "cancelled" || existingTranscription.status === "failed")) {
+      const { error: updateError } = await serviceSupabase
+        .from("pc_transcriptions")
+        .update({
+          status: "pending",
+          text: null,
+          segments: null,
+          language: null,
+          error_message: null,
+          task_id: null,
+          completed_at: null,
+          created_at: new Date().toISOString(),
+        })
+        .eq("id", existingTranscription.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+      transcriptionId = existingTranscription.id;
+    } else {
+      // Create new transcription record
+      const { data: newTranscription, error: transcriptionError } = await serviceSupabase
+        .from("pc_transcriptions")
+        .insert({
+          user_id: user.id,
+          episode_id: episodeDbId,
+          status: "pending",
+        })
+        .select("id")
+        .single();
+
+      if (transcriptionError) {
+        throw transcriptionError;
+      }
+      transcriptionId = newTranscription.id;
     }
 
     // Call FastAPI backend to start transcription
@@ -357,8 +382,16 @@ export async function POST(request: Request) {
 
     const data = await response.json();
 
+    // Store the FastAPI task_id in the transcription record for cancellation tracking
+    if (data.task_id) {
+      await serviceSupabase
+        .from("pc_transcriptions")
+        .update({ task_id: data.task_id })
+        .eq("id", transcriptionId);
+    }
+
     return NextResponse.json({
-      transcriptionId: transcription.id,
+      transcriptionId: transcriptionId,
       taskId: data.task_id,
       status: "pending",
       message: "Transcription started",

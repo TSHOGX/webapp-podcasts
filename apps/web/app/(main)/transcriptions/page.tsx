@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Loader2, FileText, Search, Download, Trash2, Copy, CheckCircle2, Clock, AlertCircle, ExternalLink } from "lucide-react";
+import { Loader2, FileText, Search, Download, Trash2, Copy, CheckCircle2, Clock, AlertCircle, ExternalLink, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -121,6 +121,35 @@ function TranscriptionsContent() {
     }
   };
 
+  const handleCancel = async (id: string) => {
+    try {
+      const response = await fetch(getApiUrl(`api/transcriptions/${id}/cancel`), {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to cancel transcription");
+      }
+
+      // Update local state to show cancelled status
+      setTranscriptions(transcriptions.map((t) =>
+        t.id === id ? { ...t, status: "cancelled" } : t
+      ));
+
+      toast({
+        title: "Success",
+        description: "Transcription cancelled successfully",
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to cancel transcription",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "completed":
@@ -142,6 +171,13 @@ function TranscriptionsContent() {
           <span className="inline-flex items-center gap-1 text-[10px] font-medium text-destructive/80 bg-destructive/10 px-2.5 py-1 rounded-full">
             <AlertCircle className="h-3 w-3" />
             Failed
+          </span>
+        );
+      case "cancelled":
+        return (
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-orange-600 bg-orange-100 px-2.5 py-1 rounded-full">
+            <XCircle className="h-3 w-3" />
+            Cancelled
           </span>
         );
       default:
@@ -262,13 +298,26 @@ function TranscriptionsContent() {
                       </div>
                     </>
                   )}
-                  {transcription.status === "processing" && (
+                  {(transcription.status === "processing" || transcription.status === "pending") && (
                     <div className="flex flex-col gap-3">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                        Transcribing...
+                        {transcription.status === "processing" ? "Transcribing..." : "Waiting in queue..."}
                       </div>
                       <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full hover:bg-orange-100 hover:text-orange-600 hover:border-orange-200"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleCancel(transcription.id);
+                          }}
+                        >
+                          <XCircle className="h-4 w-4 mr-2" />
+                          Cancel
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
@@ -289,6 +338,28 @@ function TranscriptionsContent() {
                     <div className="flex flex-col gap-3">
                       <div className="text-sm text-destructive">
                         {transcription.errorMessage || "Transcription failed"}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleDelete(transcription.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  {transcription.status === "cancelled" && (
+                    <div className="flex flex-col gap-3">
+                      <div className="text-sm text-orange-600">
+                        {transcription.errorMessage || "Transcription was cancelled"}
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <Button
