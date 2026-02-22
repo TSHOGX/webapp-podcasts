@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, Heart, ChevronRight, User } from "lucide-react";
+import { Search, Heart, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FavoriteUpdates } from "./favorite-updates";
@@ -28,11 +28,6 @@ export function UserHome({ userName }: UserHomeProps) {
     <div className="space-y-12">
       {/* Welcome Section */}
       <div className="text-center space-y-6">
-        <div className="flex items-center justify-center mb-4">
-          <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-            <User className="h-8 w-8 text-primary" />
-          </div>
-        </div>
         <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight">
           Welcome back{userName ? <>, <span className="text-primary">{userName}</span></> : ""}
         </h1>

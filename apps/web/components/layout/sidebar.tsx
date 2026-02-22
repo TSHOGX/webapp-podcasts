@@ -1,33 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { Home, Search, FileText, Heart, LogOut } from "lucide-react";
-import { cn, getApiUrl } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
-import { ThemeSelector } from "@/components/theme-selector";
+import { usePathname } from "next/navigation";
+import { Home, Search, FileText, Heart, Settings } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Home", icon: Home },
   { href: "/search", label: "Search", icon: Search },
   { href: "/transcriptions", label: "Transcriptions", icon: FileText },
   { href: "/favorites", label: "Favorites", icon: Heart },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
-  const supabase = createClient();
-
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch {
-      await fetch(getApiUrl("api/auth/logout"), { method: "POST" });
-    }
-    router.push("/login");
-  };
 
   return (
     <aside className="hidden md:flex w-[280px] bg-muted/30 flex-col">
@@ -63,20 +50,11 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* 底部区域 */}
-      <div className="p-6 space-y-4">
-        <div className="flex items-center justify-between px-2">
-          <span className="text-sm text-muted-foreground">Theme</span>
-          <ThemeSelector />
-        </div>
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-4 rounded-2xl h-12 hover:bg-accent"
-          onClick={handleLogout}
-        >
-          <LogOut className="h-5 w-5" />
-          Logout
-        </Button>
+      {/* 底部区域 - 可以添加版本信息或其他 */}
+      <div className="p-6">
+        <p className="text-xs text-muted-foreground text-center">
+          Podcast AI v1.0
+        </p>
       </div>
     </aside>
   );

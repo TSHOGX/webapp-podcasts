@@ -240,24 +240,11 @@ function TranscriptionsContent() {
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            handleExport(transcription, "txt");
-                          }}
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          Export TXT
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-full"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
                             handleExport(transcription, "md");
                           }}
                         >
                           <Download className="h-4 w-4 mr-2" />
-                          Export MD
+                          Download
                         </Button>
                         <Button
                           variant="outline"

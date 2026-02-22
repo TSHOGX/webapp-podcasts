@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const BASE_PATH = "/podcasts";
 
 // Protected routes that require authentication (without basePath)
-const protectedRoutes = ["/favorites", "/transcriptions"];
+const protectedRoutes = ["/favorites", "/transcriptions", "/settings"];
 
 // Test mode check
 const isTestMode = process.env.NEXT_PUBLIC_TEST_MODE === "true";

@@ -334,20 +334,11 @@ export default function EpisodeDetailPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleExport("txt")}
-                    className="rounded-full"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    TXT
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
                     onClick={() => handleExport("md")}
                     className="rounded-full"
                   >
                     <Download className="h-4 w-4 mr-2" />
-                    MD
+                    Download
                   </Button>
                   <Button
                     variant="ghost"
