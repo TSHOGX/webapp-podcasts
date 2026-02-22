@@ -1,9 +1,10 @@
 import asyncio
 import os
 import uuid
+from dataclasses import dataclass
 from typing import Optional
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 # Load environment variables from .env file
@@ -11,7 +12,7 @@ from dotenv import load_dotenv
 env_path = Path(__file__).parent / '.env'
 load_dotenv(dotenv_path=env_path, override=True)
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from supabase import create_client, Client
@@ -22,6 +23,8 @@ from transcribe import transcribe_audio, download_audio
 TEMP_AUDIO_DIR = os.getenv("TEMP_AUDIO_DIR", "/tmp/podcast-transcribe")
 os.makedirs(TEMP_AUDIO_DIR, exist_ok=True)
 
+TRANSCRIPTION_TIMEOUT_HOURS = 4
+
 # Supabase configuration
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
@@ -29,6 +32,22 @@ SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 # In-memory storage for transcription tasks
 # In production, use Redis or database
 transcription_tasks = {}
+
+
+@dataclass
+class QueueItem:
+    task_id: str
+    episode_id: str
+    audio_url: str
+    user_id: Optional[str]
+    created_at: datetime
+    started_at: Optional[datetime] = None
+
+
+# Global queue state
+transcription_queue: asyncio.Queue[QueueItem] = asyncio.Queue()
+current_processing: Optional[QueueItem] = None
+worker_task: Optional[asyncio.Task] = None
 
 # Initialize Supabase client
 def get_supabase() -> Client | None:
@@ -62,9 +81,22 @@ class TranscriptionStatus(BaseModel):
 async def lifespan(app: FastAPI):
     # Startup
     print(f"Starting server. Temp directory: {TEMP_AUDIO_DIR}")
+    await mark_stalled_transcriptions()
+
+    global worker_task
+    if worker_task is None or worker_task.done():
+        worker_task = asyncio.create_task(transcription_worker())
+
     yield
+
     # Shutdown
     print("Shutting down server")
+    if worker_task and not worker_task.done():
+        worker_task.cancel()
+        try:
+            await worker_task
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(
@@ -90,13 +122,11 @@ async def health_check():
 
 
 @app.post("/transcribe", response_model=TranscriptionResponse)
-async def create_transcription(
-    request: TranscriptionRequest,
-    background_tasks: BackgroundTasks
-):
-    """Create a new transcription task"""
-    task_id = str(uuid.uuid4())
+async def create_transcription(request: TranscriptionRequest):
+    """Create a new transcription task - add to queue"""
+    global worker_task
 
+    task_id = str(uuid.uuid4())
     transcription_tasks[task_id] = {
         "task_id": task_id,
         "episode_id": request.episode_id,
@@ -107,17 +137,23 @@ async def create_transcription(
         "error": None,
     }
 
-    # Start transcription in background
-    background_tasks.add_task(
-        process_transcription,
-        task_id,
-        request.audio_url
+    queue_item = QueueItem(
+        task_id=task_id,
+        episode_id=request.episode_id,
+        audio_url=request.audio_url,
+        user_id=request.user_id,
+        created_at=datetime.now()
     )
+    await transcription_queue.put(queue_item)
+
+    # Ensure worker coroutine is running
+    if worker_task is None or worker_task.done():
+        worker_task = asyncio.create_task(transcription_worker())
 
     return TranscriptionResponse(
         task_id=task_id,
         status="pending",
-        message="Transcription task created successfully"
+        message="Transcription queued"
     )
 
 
@@ -209,6 +245,72 @@ async def update_transcription_in_db(episode_id: str, status: str, text: str | N
         print(f"Updated transcription in DB: episode_id={episode_id}, status={status}")
     except Exception as e:
         print(f"Failed to update transcription in DB: {e}")
+
+
+async def handle_timeout(task_id: str):
+    """Handle transcription timeout"""
+    if task_id in transcription_tasks:
+        task = transcription_tasks[task_id]
+        task["status"] = "failed"
+        task["error"] = f"Transcription timeout after {TRANSCRIPTION_TIMEOUT_HOURS} hours"
+        await update_transcription_in_db(
+            task.get("episode_id"),
+            "failed",
+            error=f"Timeout after {TRANSCRIPTION_TIMEOUT_HOURS} hours"
+        )
+
+
+async def transcription_worker():
+    """Queue worker coroutine - serial processing"""
+    global current_processing
+    while True:
+        try:
+            item = await transcription_queue.get()
+            current_processing = item
+            item.started_at = datetime.now()
+
+            if item.task_id in transcription_tasks:
+                transcription_tasks[item.task_id]["status"] = "processing"
+                transcription_tasks[item.task_id]["progress"] = 0.1
+
+            try:
+                await asyncio.wait_for(
+                    process_transcription(item.task_id, item.audio_url),
+                    timeout=TRANSCRIPTION_TIMEOUT_HOURS * 3600
+                )
+            except asyncio.TimeoutError:
+                await handle_timeout(item.task_id)
+
+            current_processing = None
+            transcription_queue.task_done()
+        except Exception as e:
+            print(f"Worker error: {e}")
+            await asyncio.sleep(1)
+
+
+async def mark_stalled_transcriptions():
+    """Mark database transcriptions that have timed out"""
+    try:
+        supabase = get_supabase()
+        if not supabase:
+            return
+
+        cutoff_time = (datetime.now() - timedelta(hours=4)).isoformat()
+
+        result = supabase.table("pc_transcriptions") \
+            .update({
+                "status": "failed",
+                "error_message": "Transcription timeout",
+                "completed_at": datetime.now().isoformat()
+            }) \
+            .eq("status", "processing") \
+            .lt("created_at", cutoff_time) \
+            .execute()
+
+        if result.data:
+            print(f"Marked {len(result.data)} stalled transcriptions as failed")
+    except Exception as e:
+        print(f"Failed to mark stalled transcriptions: {e}")
 
 
 async def process_transcription(task_id: str, audio_url: str):

@@ -224,14 +224,38 @@ function TranscriptionsContent() {
                   </>
                 )}
                 {transcription.status === "processing" && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Transcribing...
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Transcribing...
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(transcription.id)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 )}
                 {transcription.status === "failed" && (
-                  <div className="text-sm text-red-500">
-                    {transcription.errorMessage || "Transcription failed"}
+                  <div className="flex flex-col gap-3">
+                    <div className="text-sm text-red-500">
+                      {transcription.errorMessage || "Transcription failed"}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(transcription.id)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 )}
               </CardContent>
