@@ -14,6 +14,7 @@ interface PlayerState {
   playbackRate: number;
   volume: number;
   waveformData: number[];
+  isMinimized: boolean;
 
   // Actions
   setCurrentEpisode: (episode: ExtendedEpisode | null) => void;
@@ -27,6 +28,8 @@ interface PlayerState {
   seek: (time: number) => void;
   skipForward: (seconds?: number) => void;
   skipBackward: (seconds?: number) => void;
+  toggleMinimized: () => void;
+  setIsMinimized: (value: boolean) => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
@@ -37,12 +40,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   playbackRate: 1,
   volume: 1,
   waveformData: [],
+  isMinimized: false,
 
   setCurrentEpisode: (episode) =>
     set({
       currentEpisode: episode,
       isPlaying: !!episode,
       currentTime: 0,
+      isMinimized: false,
     }),
 
   setIsPlaying: (isPlaying) => set({ isPlaying }),
@@ -70,4 +75,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set((state) => ({
       currentTime: Math.max(state.currentTime - seconds, 0),
     })),
+
+  toggleMinimized: () => set((state) => ({ isMinimized: !state.isMinimized })),
+
+  setIsMinimized: (value) => set({ isMinimized: value }),
 }));

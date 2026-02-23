@@ -9,12 +9,22 @@ import {
   SkipForward,
   Volume2,
   VolumeX,
+  X,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { usePlayerStore } from "@/store/player-store";
 import { formatDuration } from "@/lib/utils";
 import { Waveform } from "./waveform";
+
+const playbackRates = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3];
 
 export function GlobalPlayer() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -26,12 +36,15 @@ export function GlobalPlayer() {
     duration,
     playbackRate,
     volume,
+    isMinimized,
     setIsPlaying,
     setCurrentTime,
     setDuration,
     setVolume,
+    setPlaybackRate,
     skipForward,
     skipBackward,
+    toggleMinimized,
   } = usePlayerStore();
 
   useEffect(() => {
@@ -113,8 +126,55 @@ export function GlobalPlayer() {
     }
   };
 
+  const handlePlaybackRateChange = (value: string) => {
+    const rate = parseFloat(value);
+    setPlaybackRate(rate);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = rate;
+    }
+  };
+
   if (!currentEpisode) {
     return null;
+  }
+
+  // Minimized floating player
+  if (isMinimized) {
+    return (
+      <>
+        <audio
+          ref={audioRef}
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onEnded={() => setIsPlaying(false)}
+        />
+        <button
+          onClick={toggleMinimized}
+          className="fixed bottom-4 right-4 w-14 h-14 md:w-16 md:h-16 rounded-full overflow-hidden shadow-xl z-50 bg-card border border-border hover:scale-105 transition-transform"
+        >
+          {currentEpisode.podcastImage ? (
+            <Image
+              src={currentEpisode.podcastImage}
+              alt={currentEpisode.podcastTitle || ""}
+              fill
+              className="object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-muted">
+              <Play className="h-5 w-5 text-muted-foreground" />
+            </div>
+          )}
+          {/* Play/Pause overlay */}
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+            {isPlaying ? (
+              <Pause className="h-6 w-6 text-white" />
+            ) : (
+              <Play className="h-6 w-6 text-white ml-0.5" />
+            )}
+          </div>
+        </button>
+      </>
+    );
   }
 
   return (
@@ -127,6 +187,15 @@ export function GlobalPlayer() {
       />
 
       <div className="fixed bottom-0 left-0 right-0 bg-card/90 backdrop-blur-xl p-5 md:p-6 z-50">
+        {/* Close button - minimize to floating player */}
+        <button
+          onClick={toggleMinimized}
+          className="absolute top-2 right-2 p-2 rounded-full hover:bg-accent/50 transition-colors"
+          aria-label="Minimize player"
+        >
+          <X className="h-4 w-4 text-muted-foreground" />
+        </button>
+
         <div className="max-w-6xl mx-auto flex items-center gap-5 md:gap-8">
           {/* Episode Info */}
           <div className="shrink-0 flex items-center gap-4">
@@ -212,26 +281,46 @@ export function GlobalPlayer() {
             </div>
           </div>
 
-          {/* Volume */}
-          <div className="hidden md:flex w-44 items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 rounded-full hover:bg-accent"
-              onClick={toggleMute}
+          {/* Playback Rate + Volume */}
+          <div className="hidden md:flex items-center gap-4">
+            {/* Playback Rate Selector */}
+            <Select
+              value={playbackRate.toString()}
+              onValueChange={handlePlaybackRateChange}
             >
-              {isMuted ? (
-                <VolumeX className="h-4 w-4" />
-              ) : (
-                <Volume2 className="h-4 w-4" />
-              )}
-            </Button>
-            <Slider
-              value={[isMuted ? 0 : volume]}
-              max={1}
-              step={0.1}
-              onValueChange={(v) => setVolume(v[0])}
-            />
+              <SelectTrigger className="w-20 h-9 text-xs">
+                <SelectValue placeholder="1x" />
+              </SelectTrigger>
+              <SelectContent>
+                {playbackRates.map((rate) => (
+                  <SelectItem key={rate} value={rate.toString()}>
+                    {rate}x
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Volume */}
+            <div className="flex w-36 items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded-full hover:bg-accent"
+                onClick={toggleMute}
+              >
+                {isMuted ? (
+                  <VolumeX className="h-4 w-4" />
+                ) : (
+                  <Volume2 className="h-4 w-4" />
+                )}
+              </Button>
+              <Slider
+                value={[isMuted ? 0 : volume]}
+                max={1}
+                step={0.1}
+                onValueChange={(v) => setVolume(v[0])}
+              />
+            </div>
           </div>
         </div>
       </div>

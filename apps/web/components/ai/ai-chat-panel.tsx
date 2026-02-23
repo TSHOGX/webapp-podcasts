@@ -91,7 +91,7 @@ export function AIChatPanel({
 
   return (
     <Card className={cn("overflow-hidden border-primary/20", className)}>
-      <CardHeader className="pb-4">
+      <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6 pt-4 sm:pt-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -111,27 +111,29 @@ export function AIChatPanel({
               <>
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="icon"
                   onClick={handleRegenerateSummary}
                   disabled={isLoading || !isSettingsConfigured}
-                  className="rounded-full"
+                  className="rounded-full shrink-0 h-9 w-9 sm:h-10 sm:w-auto sm:px-4"
+                  title="重新生成"
                 >
                   {isLoading ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <RefreshCw className="h-4 w-4 mr-2" />
+                    <RefreshCw className="h-4 w-4" />
                   )}
-                  重新生成
+                  <span className="hidden sm:inline sm:ml-2">重新生成</span>
                 </Button>
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="icon"
                   asChild
-                  className="rounded-full"
+                  className="rounded-full shrink-0 h-9 w-9 sm:h-10 sm:w-auto sm:px-4"
+                  title="设置"
                 >
                   <Link href="/settings">
-                    <Settings className="h-4 w-4 mr-2" />
-                    设置
+                    <Settings className="h-4 w-4" />
+                    <span className="hidden sm:inline sm:ml-2">设置</span>
                   </Link>
                 </Button>
               </>
@@ -140,7 +142,7 @@ export function AIChatPanel({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 p-4 sm:p-6">
         {!isSettingsConfigured ? (
           <div className="text-center py-8 space-y-4">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
@@ -184,7 +186,7 @@ export function AIChatPanel({
           <>
             <div
               ref={scrollViewportRef}
-              className="h-[400px] overflow-y-auto pr-4 space-y-4"
+              className="h-[350px] sm:h-[400px] overflow-y-auto pr-2 sm:pr-4 space-y-3 sm:space-y-4"
             >
               {displayChats.map((chat, index) => (
                 <ChatMessage
@@ -220,19 +222,19 @@ export function AIChatPanel({
               )}
             </div>
 
-            <div className="flex gap-2 pt-4 border-t">
+            <div className="flex gap-2 pt-3 sm:pt-4 border-t">
               <Textarea
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="继续对话，询问关于内容的更多信息..."
-                className="min-h-[60px] resize-none rounded-2xl"
+                className="min-h-[52px] sm:min-h-[60px] resize-none rounded-2xl text-sm sm:text-base"
                 disabled={isLoading}
               />
               <Button
                 onClick={handleSendMessage}
                 disabled={!inputMessage.trim() || isLoading}
-                className="h-[60px] px-4 rounded-2xl shrink-0"
+                className="h-[52px] sm:h-[60px] px-3 sm:px-4 rounded-2xl shrink-0"
               >
                 {isLoading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -274,7 +276,7 @@ function ChatMessage({
   return (
     <div
       className={cn(
-        "flex gap-3 mb-4",
+        "flex gap-2 sm:gap-3 mb-4 sm:mb-5",
         isUser ? "flex-row-reverse" : "flex-row"
       )}
     >
@@ -294,7 +296,7 @@ function ChatMessage({
       </div>
       <div
         className={cn(
-          "max-w-[80%] rounded-2xl px-4 py-3",
+          "max-w-[85%] sm:max-w-[80%] rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3",
           isUser
             ? "bg-primary text-primary-foreground"
             : "bg-muted"

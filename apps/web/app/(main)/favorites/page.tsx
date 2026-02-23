@@ -88,48 +88,56 @@ function FavoritesContent() {
           No favorites yet. Search for podcasts and add them to your favorites.
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-          {favorites.map((favorite) => (
-            <Card key={favorite.id} className="overflow-hidden h-full group">
-              <Link href={`/${favorite.podcast?.id}?itunesId=${favorite.podcast?.itunesId}`} className="block">
-                <div className="aspect-square relative bg-muted overflow-hidden rounded-2xl">
-                  {favorite.podcast?.artworkUrl ? (
-                    <Image
-                      src={favorite.podcast.artworkUrl}
-                      alt={favorite.podcast.title}
-                      fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                      No Image
-                    </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </div>
-              </Link>
-              <CardContent className="p-5 pt-4">
-                <Link href={`/${favorite.podcast?.id}?itunesId=${favorite.podcast?.itunesId}`}>
-                  <h3 className="font-semibold line-clamp-2 mb-1.5 group-hover:text-primary transition-colors text-base leading-snug">
-                    {favorite.podcast?.title}
-                  </h3>
+        <>
+          <div className="h-px bg-border/50 mb-6" />
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Your Saved Podcasts</h3>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+            {favorites.map((favorite) => (
+              <Card key={favorite.id} className="overflow-hidden h-full group flex flex-col">
+                <Link href={`/${favorite.podcast?.id}?itunesId=${favorite.podcast?.itunesId}`} className="block">
+                  <div className="aspect-square relative bg-muted overflow-hidden rounded-2xl">
+                    {favorite.podcast?.artworkUrl ? (
+                      <Image
+                        src={favorite.podcast.artworkUrl}
+                        alt={favorite.podcast.title}
+                        fill
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                        No Image
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  </div>
                 </Link>
-                <p className="text-sm text-muted-foreground line-clamp-1 mb-3">
-                  {favorite.podcast?.author}
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full rounded-full hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20"
-                  onClick={() => handleRemove(favorite.id)}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Remove
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                <CardContent className="p-5 pt-4 flex-1 flex flex-col">
+                  <Link href={`/${favorite.podcast?.id}?itunesId=${favorite.podcast?.itunesId}`}>
+                    <h3 className="font-semibold line-clamp-2 mb-1.5 group-hover:text-primary transition-colors text-base leading-snug">
+                      {favorite.podcast?.title}
+                    </h3>
+                  </Link>
+                  <p className="text-sm text-muted-foreground line-clamp-1 mb-3">
+                    {favorite.podcast?.author}
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full rounded-full hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 mt-auto"
+                    onClick={() => handleRemove(favorite.id)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Remove
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          </section>
+        </>
       )}
     </div>
   );
