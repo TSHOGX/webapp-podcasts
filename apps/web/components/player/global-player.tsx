@@ -150,7 +150,7 @@ export function GlobalPlayer() {
         />
         <button
           onClick={toggleMinimized}
-          className="fixed bottom-4 right-4 w-14 h-14 md:w-16 md:h-16 rounded-full overflow-hidden shadow-xl z-50 bg-card border border-border hover:scale-105 transition-transform"
+          className="fixed bottom-24 right-4 md:bottom-6 w-12 h-12 md:w-16 md:h-16 rounded-full overflow-hidden shadow-xl z-50 bg-card border border-border hover:scale-105 transition-transform"
         >
           {currentEpisode.podcastImage ? (
             <Image
@@ -186,20 +186,12 @@ export function GlobalPlayer() {
         onEnded={() => setIsPlaying(false)}
       />
 
-      <div className="fixed bottom-0 left-0 right-0 bg-card/90 backdrop-blur-xl p-5 md:p-6 z-50">
-        {/* Close button - minimize to floating player */}
-        <button
-          onClick={toggleMinimized}
-          className="absolute top-2 right-2 p-2 rounded-full hover:bg-accent/50 transition-colors"
-          aria-label="Minimize player"
-        >
-          <X className="h-4 w-4 text-muted-foreground" />
-        </button>
-
-        <div className="max-w-6xl mx-auto flex items-center gap-5 md:gap-8">
+      <div className="fixed bottom-0 left-0 right-0 bg-card/90 backdrop-blur-xl p-3 md:p-6 z-50">
+        {/* Desktop layout - single row */}
+        <div className="hidden md:flex max-w-6xl mx-auto items-center gap-8">
           {/* Episode Info */}
           <div className="shrink-0 flex items-center gap-4">
-            <div className="w-14 h-14 md:w-[72px] md:h-[72px] relative bg-muted rounded-2xl overflow-hidden shadow-soft">
+            <div className="w-[72px] h-[72px] relative bg-muted rounded-2xl overflow-hidden shadow-soft">
               {currentEpisode.podcastImage ? (
                 <Image
                   src={currentEpisode.podcastImage}
@@ -213,7 +205,7 @@ export function GlobalPlayer() {
                 </div>
               )}
             </div>
-            <div className="hidden md:block min-w-0 max-w-[220px]">
+            <div className="min-w-0 max-w-[220px]">
               <p className="font-medium text-sm truncate">{currentEpisode.title}</p>
               <p className="text-xs text-muted-foreground truncate">
                 {currentEpisode.podcastTitle}
@@ -221,7 +213,7 @@ export function GlobalPlayer() {
             </div>
           </div>
 
-          {/* Controls */}
+          {/* Desktop Controls */}
           <div className="flex-1 flex flex-col items-center gap-3">
             <div className="flex items-center gap-3">
               <Button
@@ -256,34 +248,30 @@ export function GlobalPlayer() {
               </Button>
             </div>
 
-            <div className="w-full flex items-center gap-2 md:gap-3">
-              <span className="text-xs text-muted-foreground w-10 md:w-12 text-right">
+            <div className="w-full flex items-center gap-3">
+              <span className="text-xs text-muted-foreground w-12 text-right">
                 {formatDuration(Math.floor(currentTime))}
               </span>
 
               <div className="flex-1">
-                {/* Hide waveform on mobile */}
-                <div className="hidden md:block">
-                  <Waveform audioUrl={currentEpisode.audioUrl} />
-                </div>
+                <Waveform audioUrl={currentEpisode.audioUrl} />
                 <Slider
                   value={[currentTime]}
                   max={duration || 100}
                   step={1}
                   onValueChange={handleSeek}
-                  className="md:mt-2"
+                  className="mt-2"
                 />
               </div>
 
-              <span className="text-xs text-muted-foreground w-10 md:w-12">
+              <span className="text-xs text-muted-foreground w-12">
                 {formatDuration(Math.floor(duration))}
               </span>
             </div>
           </div>
 
-          {/* Playback Rate + Volume */}
-          <div className="hidden md:flex items-center gap-4">
-            {/* Playback Rate Selector */}
+          {/* Desktop Playback Rate + Volume + Close */}
+          <div className="flex items-center gap-4">
             <Select
               value={playbackRate.toString()}
               onValueChange={handlePlaybackRateChange}
@@ -300,7 +288,6 @@ export function GlobalPlayer() {
               </SelectContent>
             </Select>
 
-            {/* Volume */}
             <div className="flex w-36 items-center gap-2">
               <Button
                 variant="ghost"
@@ -321,12 +308,122 @@ export function GlobalPlayer() {
                 onValueChange={(v) => setVolume(v[0])}
               />
             </div>
+
+            <button
+              onClick={toggleMinimized}
+              className="p-2 rounded-full hover:bg-accent/50 transition-colors"
+              aria-label="Minimize player"
+            >
+              <X className="h-4 w-4 text-muted-foreground" />
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile layout - two rows */}
+        <div className="md:hidden max-w-6xl mx-auto">
+          {/* Row 1: Cover, Controls, Close */}
+          <div className="flex items-center justify-between px-1">
+            {/* Album Cover */}
+            <div className="w-11 h-11 relative bg-muted rounded-xl overflow-hidden shadow-soft shrink-0">
+              {currentEpisode.podcastImage ? (
+                <Image
+                  src={currentEpisode.podcastImage}
+                  alt={currentEpisode.podcastTitle || ""}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">
+                  No Image
+                </div>
+              )}
+            </div>
+
+            {/* Center Controls */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded-full hover:bg-accent"
+                onClick={() => skipBackward(10)}
+              >
+                <SkipBack className="h-4 w-4" />
+              </Button>
+
+              <Button
+                variant="default"
+                size="icon"
+                className="h-12 w-12 rounded-full shadow-soft"
+                onClick={() => setIsPlaying(!isPlaying)}
+              >
+                {isPlaying ? (
+                  <Pause className="h-5 w-5" />
+                ) : (
+                  <Play className="h-5 w-5 ml-0.5" />
+                )}
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded-full hover:bg-accent"
+                onClick={() => skipForward(30)}
+              >
+                <SkipForward className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Close Button */}
+            <button
+              onClick={toggleMinimized}
+              className="p-2 rounded-full hover:bg-accent/50 transition-colors shrink-0"
+              aria-label="Minimize player"
+            >
+              <X className="h-4 w-4 text-muted-foreground" />
+            </button>
+          </div>
+
+          {/* Row 2: Progress Bar with Time and Rate */}
+          <div className="mt-2 flex items-center gap-2 px-1">
+            <span className="text-[10px] text-muted-foreground w-8 text-right shrink-0">
+              {formatDuration(Math.floor(currentTime))}
+            </span>
+
+            <div className="flex-1">
+              <Slider
+                value={[currentTime]}
+                max={duration || 100}
+                step={1}
+                onValueChange={handleSeek}
+              />
+            </div>
+
+            <span className="text-[10px] text-muted-foreground w-8 shrink-0">
+              {formatDuration(Math.floor(duration))}
+            </span>
+
+            {/* Playback Rate */}
+            <Select
+              value={playbackRate.toString()}
+              onValueChange={handlePlaybackRateChange}
+            >
+              <SelectTrigger className="w-12 h-6 text-[10px] px-1.5 rounded-full border-primary/20 shrink-0">
+                <SelectValue placeholder="1x" />
+              </SelectTrigger>
+              <SelectContent>
+                {playbackRates.map((rate) => (
+                  <SelectItem key={rate} value={rate.toString()}>
+                    {rate}x
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>
 
       {/* Mobile spacing for bottom nav */}
-      <div className="md:hidden h-24" />
+      <div className="md:hidden h-20" />
     </>
   );
 }
