@@ -59,3 +59,7 @@ __pycache__/
 .cache/
 temp/
 tmp/
+
+# Local config
+pm2.config.js
+tsconfig.tsbuildinfo
