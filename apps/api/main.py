@@ -19,6 +19,8 @@ from supabase import create_client, Client
 
 from transcribe import transcribe_audio, download_audio
 from transcription_process import TranscriptionProcess, process_manager
+from ai_service import AIService, decrypt_api_key
+from ai_routes import router as ai_router
 
 # Configuration
 TEMP_AUDIO_DIR = os.getenv("TEMP_AUDIO_DIR", "/tmp/podcast-transcribe")
@@ -111,6 +113,9 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Include AI routes
+app.include_router(ai_router)
 
 # CORS middleware
 app.add_middleware(
@@ -387,11 +392,113 @@ async def mark_stalled_transcriptions():
         print(f"Failed to mark stalled transcriptions: {e}")
 
 
+async def on_transcription_completed(
+    transcription_id: str,
+    transcription_text: str,
+    user_id: Optional[str]
+):
+    """转录完成后的回调，自动生成 AI 总结"""
+    if not user_id:
+        return
+
+    try:
+        supabase = get_supabase()
+        if not supabase:
+            return
+
+        # 1. 从 Supabase 获取用户设置
+        result = supabase.table("pc_user_settings") \
+            .select("*") \
+            .eq("user_id", user_id) \
+            .maybe_single() \
+            .execute()
+
+        if not result.data:
+            return  # 用户未配置 AI 设置
+
+        settings = result.data
+
+        # 2. 检查是否开启自动总结且配置完整
+        if not settings.get("enable_auto_summary", True):
+            return
+
+        required_fields = ["llm_provider", "llm_api_key", "llm_model"]
+        if not all(settings.get(f) for f in required_fields):
+            return  # 配置不完整
+
+        # 3. 解密 API Key
+        api_key = decrypt_api_key(settings["llm_api_key"])
+
+        # 4. 创建 AI 服务实例
+        ai_service = AIService(
+            provider=settings["llm_provider"],
+            api_key=api_key,
+            model=settings["llm_model"],
+            base_url=settings.get("llm_base_url"),
+            system_prompt=settings.get("system_prompt"),
+            temperature=settings.get("temperature", 0.7)
+        )
+
+        # 5. 生成总结
+        summary_content = ""
+        user_prompt_template = settings.get("user_prompt_template", "")
+        async for chunk in ai_service.generate_summary(
+            transcription=transcription_text,
+            user_prompt_template=user_prompt_template,
+            stream=False  # Non-streaming for background task
+        ):
+            summary_content += chunk
+
+        # 6. 将总结作为第一条 assistant 消息存入数据库
+        supabase.table("pc_ai_chats").insert({
+            "transcription_id": transcription_id,
+            "user_id": user_id,
+            "role": "assistant",
+            "content": summary_content,
+            "model": settings["llm_model"],
+            "metadata": {
+                "temperature": settings.get("temperature"),
+                "prompt_template": user_prompt_template,
+                "system_prompt": settings.get("system_prompt"),
+                "auto_generated": True
+            }
+        }).execute()
+
+        print(f"Auto-generated summary for transcription {transcription_id}")
+
+    except Exception as e:
+        print(f"Auto-summary generation failed: {e}")
+
+
+async def get_transcription_id_by_episode(episode_id: str) -> Optional[str]:
+    """Get the most recent transcription ID for an episode"""
+    try:
+        supabase = get_supabase()
+        if not supabase:
+            return None
+
+        result = supabase.table("pc_transcriptions") \
+            .select("id, user_id") \
+            .eq("episode_id", episode_id) \
+            .order("created_at", desc=True) \
+            .limit(1) \
+            .maybe_single() \
+            .execute()
+
+        if result.data:
+            return result.data["id"], result.data.get("user_id")
+        return None, None
+    except Exception as e:
+        print(f"Failed to get transcription ID: {e}")
+        return None, None
+
+
 async def process_transcription(task_id: str, audio_url: str):
     """Process transcription task using process-based approach for cancellation support"""
     task = transcription_tasks[task_id]
     temp_file = None
     episode_id = task.get("episode_id")
+    user_id = task.get("user_id")
 
     try:
         # Check if task was cancelled before starting
@@ -480,6 +587,18 @@ async def process_transcription(task_id: str, audio_url: str):
                     segments=result.segments,
                     language=result.language
                 )
+
+                # Trigger auto-summary if user has settings configured
+                transcription_id, db_user_id = await get_transcription_id_by_episode(episode_id)
+                if transcription_id:
+                    # Use user_id from task if available, otherwise from DB
+                    summary_user_id = user_id or db_user_id
+                    if summary_user_id:
+                        asyncio.create_task(on_transcription_completed(
+                            transcription_id=transcription_id,
+                            transcription_text=result.text,
+                            user_id=summary_user_id
+                        ))
         else:
             error_msg = result.error if result else "Transcription failed"
             raise Exception(error_msg)
@@ -508,4 +627,6 @@ if __name__ == "__main__":
     import uvicorn
 
     port = int(os.getenv("PORT", "12890"))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+    # reload mode only for development, disabled in production (PM2)
+    reload = os.getenv("PYTHON_ENV") == "development"
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=reload)

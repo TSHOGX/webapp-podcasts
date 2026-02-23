@@ -18,6 +18,7 @@ import {
   formatAsVTT,
   formatAsMarkdown,
 } from "@/components/transcription/transcription-viewer";
+import { AIChatPanel } from "@/components/ai/ai-chat-panel";
 
 interface EpisodeDetail extends Episode {
   podcastTitle: string;
@@ -31,6 +32,7 @@ export default function EpisodeDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [transcribing, setTranscribing] = useState(false);
   const [transcriptionStatus, setTranscriptionStatus] = useState<string | null>(null);
+  const [transcriptionId, setTranscriptionId] = useState<string | null>(null);
   const [transcriptionText, setTranscriptionText] = useState<string | null>(null);
   const [transcriptionSegments, setTranscriptionSegments] = useState<TranscriptionSegment[] | null>(null);
   const [transcriptionLanguage, setTranscriptionLanguage] = useState<string | null>(null);
@@ -86,6 +88,7 @@ export default function EpisodeDetailPage() {
       if (response.ok) {
         const data = await response.json();
         if (data.transcription) {
+          setTranscriptionId(data.transcription.id);
           setTranscriptionStatus(data.transcription.status);
           setTranscriptionText(data.transcription.text);
           setTranscriptionSegments(data.transcription.segments || null);
@@ -287,6 +290,7 @@ export default function EpisodeDetailPage() {
 
       // If transcription already exists and is completed, show the text
       if (data.status === "completed" && data.transcription?.text) {
+        setTranscriptionId(data.transcription.id);
         setTranscriptionText(data.transcription.text);
         setTranscriptionSegments(data.transcription.segments || null);
         setTranscriptionLanguage(data.transcription.language || null);
@@ -295,6 +299,9 @@ export default function EpisodeDetailPage() {
           description: "This episode has already been transcribed.",
         });
       } else {
+        if (data.transcriptionId) {
+          setTranscriptionId(data.transcriptionId);
+        }
         toast({
           title: "Success",
           description: data.message || "Transcription started. You can check progress in the Transcriptions page.",
@@ -522,6 +529,14 @@ export default function EpisodeDetailPage() {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* AI Summary & Chat Panel - only shown when transcription is completed */}
+      {transcriptionStatus === "completed" && transcriptionText && transcriptionId && (
+        <AIChatPanel
+          transcriptionId={transcriptionId}
+          transcriptionText={transcriptionText}
+        />
       )}
 
       {/* Episode Description */}

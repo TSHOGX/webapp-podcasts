@@ -2,7 +2,7 @@ module.exports = {
   apps: [{
     name: 'podcast-api',
     script: 'main.py',
-    interpreter: 'python3',
+    interpreter: 'uv run python',
     cwd: '/Users/xixi/Workspace/webapp/podcasts/apps/api',
     instances: 1,
     autorestart: true,
