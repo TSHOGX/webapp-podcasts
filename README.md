@@ -9,9 +9,15 @@ A full-featured podcast webapp for searching podcasts, listening to episodes, an
 - **Episode Browser**: Browse podcast episodes with RSS feed parsing
 - **Audio Player**: Full-featured player with playback controls, speed adjustment, and waveform visualization
 - **Transcription**: Transcribe podcast episodes using mlx-whisper (Apple Silicon optimized)
+- **Timestamped Transcription**: Segment-level timestamps with click-to-seek and auto-highlight
+- **Transcription Cancellation**: Cancel pending/processing transcription jobs
+- **Export Formats**: TXT, MD, SRT, VTT, JSON
+- **AI Summary**: Automatically generate structured summaries using LLM (Kimi/OpenAI/Anthropic)
+- **AI Chat**: Interactive chat about transcription content
 - **Transcription Management**: View, search, and export transcriptions
 - **Favorites**: Save favorite podcasts for quick access
 - **Playback History**: Track playback progress
+- **Settings**: Configure AI provider, prompts, and themes
 
 ## Tech Stack
 
@@ -150,9 +156,11 @@ The application will be available at:
 - **pc_users**: User profiles
 - **pc_podcasts**: Podcast metadata from iTunes
 - **pc_episodes**: Podcast episodes from RSS feeds
-- **pc_transcriptions**: Transcription jobs and results
+- **pc_transcriptions**: Transcription jobs and results (with segments, language, task_id)
 - **pc_favorites**: User's favorite podcasts
 - **pc_playback_progress**: Episode playback progress
+- **pc_ai_chats**: AI conversation history
+- **pc_user_settings**: User AI configuration
 
 ## API Endpoints
 
@@ -164,6 +172,14 @@ The application will be available at:
 - `POST /api/transcribe` - Create transcription job
 - `GET /api/transcriptions` - List user's transcriptions
 - `DELETE /api/transcriptions/[id]` - Delete transcription
+- `POST /api/transcriptions/[id]/cancel` - Cancel pending/processing transcription
+
+### AI
+- `GET /api/ai/settings` - Get user AI settings
+- `POST /api/ai/settings` - Save user AI settings
+- `GET /api/ai/chats/[transcriptionId]` - Get chat history
+- `POST /api/ai/chat` - Send message (SSE streaming)
+- `POST /api/ai/regenerate-summary` - Generate AI summary (SSE streaming)
 
 ### Favorites
 - `GET /api/favorites` - List user's favorites

@@ -211,3 +211,14 @@ SUPABASE_SERVICE_ROLE_KEY=sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz
 WHISPER_MODEL=mlx-community/whisper-large-v3-turbo
 TEMP_AUDIO_DIR=/tmp/podcast-transcribe
 ```
+
+## AI 功能配置
+
+如需使用 AI 总结和对话功能，用户需要在 `/settings` 页面配置：
+
+1. **选择 Provider**: Kimi (Moonshot)、OpenAI、Anthropic 或自定义
+2. **填写 API Key**: 用户的 LLM API Key (加密存储)
+3. **选择模型**: 如 `kimi-latest`、`gpt-4`、`claude-3-opus-20240229`
+4. **(可选)** 自定义提示词模板和 Temperature
+
+AI 设置按用户存储在 `pc_user_settings` 表中。
