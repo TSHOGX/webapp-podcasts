@@ -263,16 +263,13 @@ function ChatMessage({
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Collapse long user messages
-  const MAX_LENGTH = 300;
+  const MAX_LENGTH = 200;
   const isLongMessage = chat.content.length > MAX_LENGTH;
   const shouldShowExpand = isUser && isLongMessage && !isStreaming && !isLoading;
 
   const displayContent = shouldShowExpand && !isExpanded
     ? chat.content.slice(0, MAX_LENGTH) + "..."
     : chat.content;
-
-  // Detect summary prompt
-  const isSummaryPrompt = isUser && isLongMessage;
 
   return (
     <div
@@ -309,11 +306,6 @@ function ChatMessage({
             <span className="text-xs font-medium opacity-70">AI 总结</span>
           </div>
         )}
-        {isSummaryPrompt && (
-          <div className="flex items-center gap-2 mb-2 opacity-70">
-            <span className="text-xs font-medium">生成总结请求</span>
-          </div>
-        )}
         <div className="whitespace-pre-wrap text-sm leading-relaxed">
           {isLoading ? (
             <div className="flex items-center gap-2 py-2">
@@ -332,7 +324,10 @@ function ChatMessage({
         {shouldShowExpand && (
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-1 mt-2 text-xs opacity-70 hover:opacity-100 transition-opacity"
+            className={cn(
+              "flex items-center gap-1 mt-2 text-xs font-medium underline-offset-2 hover:underline transition-all",
+              isUser ? "text-primary-foreground/80 hover:text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
           >
             {isExpanded ? (
               <>

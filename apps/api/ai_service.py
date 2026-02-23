@@ -99,7 +99,7 @@ class AIService:
             base_url=base_url,
             stream=stream,
             temperature=self._get_temperature(),
-            max_tokens=4000
+            max_tokens=200000
         )
 
         if stream:
@@ -125,7 +125,7 @@ class AIService:
             base_url=base_url,
             stream=stream,
             temperature=self._get_temperature(),
-            max_tokens=4000
+            max_tokens=200000
         )
 
         if stream:
@@ -159,7 +159,7 @@ class AIService:
             base_url=base_url,
             stream=False,
             temperature=self._get_temperature(),
-            max_tokens=4000
+            max_tokens=200000
         )
 
         return response.choices[0].message.content
