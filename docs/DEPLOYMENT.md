@@ -177,9 +177,9 @@ git pull  # 或手动更新
 cd apps/web
 yarn build
 
-# 3. 重启服务
-pm2 restart podcasts-web
-pm2 restart podcasts-api
+# 3. 重启服务（使用 --update-env 确保环境变量更新）
+pm2 restart --update-env podcasts-web
+pm2 restart --update-env podcasts-api
 
 # 4. 重启 gateway
 pm2 restart gateway
