@@ -19,6 +19,7 @@ import {
   formatAsMarkdown,
 } from "@/components/transcription/transcription-viewer";
 import { AIChatPanel } from "@/components/ai/ai-chat-panel";
+import { EpisodeFavoriteButton } from "@/components/podcast/episode-favorite-button";
 
 interface EpisodeDetail extends Episode {
   podcastTitle: string;
@@ -372,6 +373,18 @@ export default function EpisodeDetailPage() {
               <Play className="h-4 w-4 mr-2" />
               Play Episode
             </Button>
+
+            <EpisodeFavoriteButton
+              episodeId={id}
+              episodeGuid={id}
+              podcastId={episode?.podcastId}
+              episodeTitle={episode?.title}
+              episodeDescription={episode?.description}
+              audioUrl={episode?.audioUrl}
+              duration={episode?.duration}
+              publishedAt={episode?.publishedAt}
+              className="rounded-full h-12 px-6"
+            />
 
             {transcriptionStatus === "completed" ? (
               <Button

@@ -63,6 +63,23 @@ export interface Favorite {
   podcast?: Podcast;
 }
 
+export interface EpisodeFavorite {
+  id: string;
+  userId?: string;
+  episodeId?: string;
+  createdAt?: string;
+  episode?: Episode & {
+    guid?: string;
+    podcast?: {
+      id: string;
+      itunesId?: number;
+      title: string;
+      author?: string;
+      artworkUrl?: string;
+    };
+  };
+}
+
 export interface PlaybackProgress {
   id: string;
   userId?: string;

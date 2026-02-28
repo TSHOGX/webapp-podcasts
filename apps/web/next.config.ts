@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   basePath: '/podcasts',
   assetPrefix: '/podcasts',
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
